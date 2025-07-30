@@ -1527,19 +1527,58 @@ const SuperAdmin = () => {
 };
 
 // Content Management Component (Super Admin Only)
+// Type definitions for content management
+interface ContentItem {
+  id: number;
+  content_type: string;
+  content_key: string;
+  title: string;
+  description: string;
+  media_type: string;
+  media_url?: string;
+  display_order: number;
+  is_active: number;
+}
+
+interface SettingItem {
+  id: number;
+  setting_key: string;
+  setting_value: string;
+  setting_type: string;
+  description: string;
+  updated_by_name?: string;
+}
+
+interface FormData {
+  content_type: string;
+  content_key: string;
+  title: string;
+  description: string;
+  media_type: string;
+  display_order: number;
+  is_active: number;
+}
+
+interface SettingFormData {
+  setting_key: string;
+  setting_value: string;
+  setting_type: string;
+  description: string;
+}
+
 const ContentManagement: React.FC = () => {
   const { user, role } = useAuth();
   const [activeTab, setActiveTab] = React.useState('content');
-  const [content, setContent] = React.useState([]);
-  const [settings, setSettings] = React.useState([]);
-  const [categories, setCategories] = React.useState([]);
+  const [content, setContent] = React.useState<ContentItem[]>([]);
+  const [settings, setSettings] = React.useState<SettingItem[]>([]);
+  const [categories, setCategories] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [showSettingsModal, setShowSettingsModal] = React.useState(false);
-  const [selectedContent, setSelectedContent] = React.useState(null);
-  const [selectedSetting, setSelectedSetting] = React.useState(null);
-  const [formData, setFormData] = React.useState({
+  const [selectedContent, setSelectedContent] = React.useState<ContentItem | null>(null);
+  const [selectedSetting, setSelectedSetting] = React.useState<SettingItem | null>(null);
+  const [formData, setFormData] = React.useState<FormData>({
     content_type: '',
     content_key: '',
     title: '',
@@ -1548,7 +1587,7 @@ const ContentManagement: React.FC = () => {
     display_order: 0,
     is_active: 1
   });
-  const [settingForm, setSettingForm] = React.useState({
+  const [settingForm, setSettingForm] = React.useState<SettingFormData>({
     setting_key: '',
     setting_value: '',
     setting_type: 'text',
@@ -1607,11 +1646,11 @@ const ContentManagement: React.FC = () => {
     }
   };
 
-  const handleAddContent = async (e) => {
+  const handleAddContent = async (e: React.FormEvent) => {
     e.preventDefault();
     const formDataObj = new FormData();
     Object.keys(formData).forEach(key => {
-      formDataObj.append(key, formData[key]);
+      formDataObj.append(key, formData[key as keyof FormData].toString());
     });
 
     try {
@@ -1641,15 +1680,15 @@ const ContentManagement: React.FC = () => {
     }
   };
 
-  const handleUpdateContent = async (e) => {
+  const handleUpdateContent = async (e: React.FormEvent) => {
     e.preventDefault();
     const formDataObj = new FormData();
     Object.keys(formData).forEach(key => {
-      formDataObj.append(key, formData[key]);
+      formDataObj.append(key, formData[key as keyof FormData].toString());
     });
 
     try {
-      const response = await fetch(`http://localhost:4000/api/admin/content/${selectedContent.id}`, {
+      const response = await fetch(`http://localhost:4000/api/admin/content/${selectedContent?.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -1667,7 +1706,7 @@ const ContentManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteContent = async (id) => {
+  const handleDeleteContent = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this content?')) {
       try {
         const response = await fetch(`http://localhost:4000/api/admin/content/${id}`, {
@@ -1686,7 +1725,7 @@ const ContentManagement: React.FC = () => {
     }
   };
 
-  const handleUpdateSetting = async (e) => {
+  const handleUpdateSetting = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const response = await fetch(`http://localhost:4000/api/admin/content/settings/${settingForm.setting_key}`, {
@@ -1988,7 +2027,7 @@ const ContentManagement: React.FC = () => {
                       <label className="form-label">Description</label>
                       <textarea 
                         className="form-control"
-                        rows="3"
+                        rows={3}
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                       ></textarea>
@@ -2016,7 +2055,7 @@ const ContentManagement: React.FC = () => {
                         <input 
                           type="checkbox" 
                           className="form-check-input"
-                          checked={formData.is_active}
+                          checked={formData.is_active === 1}
                           onChange={(e) => setFormData({...formData, is_active: e.target.checked ? 1 : 0})}
                         />
                         <label className="form-check-label">Active</label>
@@ -2091,7 +2130,7 @@ const ContentManagement: React.FC = () => {
                       <label className="form-label">Description</label>
                       <textarea 
                         className="form-control"
-                        rows="3"
+                        rows={3}
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                       ></textarea>
@@ -2119,7 +2158,7 @@ const ContentManagement: React.FC = () => {
                         <input 
                           type="checkbox" 
                           className="form-check-input"
-                          checked={formData.is_active}
+                          checked={formData.is_active === 1}
                           onChange={(e) => setFormData({...formData, is_active: e.target.checked ? 1 : 0})}
                         />
                         <label className="form-check-label">Active</label>
@@ -2190,7 +2229,7 @@ const ContentManagement: React.FC = () => {
                   <label className="form-label">Description</label>
                   <textarea 
                     className="form-control"
-                    rows="3"
+                    rows={3}
                     value={settingForm.description}
                     onChange={(e) => setSettingForm({...settingForm, description: e.target.value})}
                   ></textarea>
