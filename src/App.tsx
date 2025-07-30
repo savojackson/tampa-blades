@@ -21,6 +21,39 @@ const Landing = () => {
     { label: "Photos Shared", value: "0", icon: "bi-camera", color: "warning" }
   ]);
   const [loadingStats, setLoadingStats] = React.useState(true);
+  const [welcomeContent, setWelcomeContent] = React.useState({
+    title: 'Welcome to the Skate Community',
+    subtitle: 'Connect, discover, and share your passion for skating',
+    heroVideo: '',
+    heroImage: ''
+  });
+
+  // Fetch welcome content from API
+  const fetchWelcomeContent = async () => {
+    try {
+      const [titleResponse, subtitleResponse, videoResponse, imageResponse] = await Promise.all([
+        fetch('http://localhost:4000/api/content/settings/welcome_title'),
+        fetch('http://localhost:4000/api/content/settings/welcome_subtitle'),
+        fetch('http://localhost:4000/api/content/settings/hero_video_url'),
+        fetch('http://localhost:4000/api/content/settings/hero_image_url')
+      ]);
+
+      const titleData = await titleResponse.json();
+      const subtitleData = await subtitleResponse.json();
+      const videoData = await videoResponse.json();
+      const imageData = await imageResponse.json();
+
+      setWelcomeContent({
+        title: titleData.setting?.setting_value || 'Welcome to the Skate Community',
+        subtitle: subtitleData.setting?.setting_value || 'Connect, discover, and share your passion for skating',
+        heroVideo: videoData.setting?.setting_value || '',
+        heroImage: imageData.setting?.setting_value || ''
+      });
+    } catch (error) {
+      console.error('Failed to fetch welcome content:', error);
+      // Keep default values if API fails
+    }
+  };
 
   // Fetch community statistics from API
   const fetchCommunityStats = async () => {
@@ -132,6 +165,7 @@ const Landing = () => {
   React.useEffect(() => {
     fetchCommunityStats();
     fetchUpcomingEvents();
+    fetchWelcomeContent();
   }, []);
 
 
@@ -219,11 +253,18 @@ const Landing = () => {
         <div className="row align-items-center">
           <div className="col-lg-6">
             <h1 className="display-4 fw-bold mb-3">
-              Welcome to <span className="text-primary">the Skate Community</span>
+              {welcomeContent.title.includes('the Skate Community') ? (
+                <>
+                  {welcomeContent.title.split('the Skate Community')[0]}
+                  <span className="text-primary">the Skate Community</span>
+                  {welcomeContent.title.split('the Skate Community')[1]}
+                </>
+              ) : (
+                welcomeContent.title
+              )}
             </h1>
             <p className="lead mb-4">
-              The premier roller skating community. Connect with fellow skaters, 
-              discover amazing events, and share your passion for skating.
+              {welcomeContent.subtitle}
             </p>
             {!user && (
               <div className="d-flex gap-3">
@@ -240,20 +281,33 @@ const Landing = () => {
           </div>
           <div className="col-lg-6">
             <div className="welcome-video">
-              <div className="video-container rounded-3 shadow">
-                <div className="video-placeholder">
-                  <div className="video-content">
-                    <i className="bi bi-play-circle-fill fs-1 text-primary mb-3"></i>
-                    <h5 className="text-white mb-2">Community Video</h5>
-                    <p className="text-white-50 mb-0">Watch our latest community highlights</p>
+              {welcomeContent.heroVideo ? (
+                <div className="video-container rounded-3 shadow">
+                  <video className="w-100 rounded-3" controls>
+                    <source src={welcomeContent.heroVideo} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              ) : welcomeContent.heroImage ? (
+                <div className="video-container rounded-3 shadow">
+                  <img 
+                    src={welcomeContent.heroImage} 
+                    alt="Community Hero"
+                    className="w-100 rounded-3"
+                    style={{ height: '300px', objectFit: 'cover' }}
+                  />
+                </div>
+              ) : (
+                <div className="video-container rounded-3 shadow">
+                  <div className="video-placeholder">
+                    <div className="video-content">
+                      <i className="bi bi-play-circle-fill fs-1 text-primary mb-3"></i>
+                      <h5 className="text-white mb-2">Community Video</h5>
+                      <p className="text-white-50 mb-0">Watch our latest community highlights</p>
+                    </div>
                   </div>
                 </div>
-                {/* Video will be added here - you can replace this with an actual video element */}
-                {/* <video className="w-100 rounded-3" controls>
-                  <source src="your-video-url.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video> */}
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -1468,6 +1522,697 @@ const SuperAdmin = () => {
           </Modal.Footer>
         </Form>
       </Modal>
+    </div>
+  );
+};
+
+// Content Management Component (Super Admin Only)
+const ContentManagement: React.FC = () => {
+  const { user, role } = useAuth();
+  const [activeTab, setActiveTab] = React.useState('content');
+  const [content, setContent] = React.useState([]);
+  const [settings, setSettings] = React.useState([]);
+  const [categories, setCategories] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showAddModal, setShowAddModal] = React.useState(false);
+  const [showEditModal, setShowEditModal] = React.useState(false);
+  const [showSettingsModal, setShowSettingsModal] = React.useState(false);
+  const [selectedContent, setSelectedContent] = React.useState(null);
+  const [selectedSetting, setSelectedSetting] = React.useState(null);
+  const [formData, setFormData] = React.useState({
+    content_type: '',
+    content_key: '',
+    title: '',
+    description: '',
+    media_type: '',
+    display_order: 0,
+    is_active: 1
+  });
+  const [settingForm, setSettingForm] = React.useState({
+    setting_key: '',
+    setting_value: '',
+    setting_type: 'text',
+    description: ''
+  });
+
+  React.useEffect(() => {
+    if (role === 'super_admin') {
+      fetchContent();
+      fetchSettings();
+      fetchCategories();
+    }
+  }, [role]);
+
+  const fetchContent = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/admin/content', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      setContent(data.content || []);
+    } catch (error) {
+      console.error('Error fetching content:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/admin/content/settings', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      setSettings(data.settings || []);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/admin/content/categories', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleAddContent = async (e) => {
+    e.preventDefault();
+    const formDataObj = new FormData();
+    Object.keys(formData).forEach(key => {
+      formDataObj.append(key, formData[key]);
+    });
+
+    try {
+      const response = await fetch('http://localhost:4000/api/admin/content', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formDataObj
+      });
+      
+      if (response.ok) {
+        setShowAddModal(false);
+        setFormData({
+          content_type: '',
+          content_key: '',
+          title: '',
+          description: '',
+          media_type: '',
+          display_order: 0,
+          is_active: 1
+        });
+        fetchContent();
+      }
+    } catch (error) {
+      console.error('Error adding content:', error);
+    }
+  };
+
+  const handleUpdateContent = async (e) => {
+    e.preventDefault();
+    const formDataObj = new FormData();
+    Object.keys(formData).forEach(key => {
+      formDataObj.append(key, formData[key]);
+    });
+
+    try {
+      const response = await fetch(`http://localhost:4000/api/admin/content/${selectedContent.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formDataObj
+      });
+      
+      if (response.ok) {
+        setShowEditModal(false);
+        setSelectedContent(null);
+        fetchContent();
+      }
+    } catch (error) {
+      console.error('Error updating content:', error);
+    }
+  };
+
+  const handleDeleteContent = async (id) => {
+    if (window.confirm('Are you sure you want to delete this content?')) {
+      try {
+        const response = await fetch(`http://localhost:4000/api/admin/content/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (response.ok) {
+          fetchContent();
+        }
+      } catch (error) {
+        console.error('Error deleting content:', error);
+      }
+    }
+  };
+
+  const handleUpdateSetting = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`http://localhost:4000/api/admin/content/settings/${settingForm.setting_key}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settingForm)
+      });
+      
+      if (response.ok) {
+        setShowSettingsModal(false);
+        setSettingForm({
+          setting_key: '',
+          setting_value: '',
+          setting_type: 'text',
+          description: ''
+        });
+        fetchSettings();
+      }
+    } catch (error) {
+      console.error('Error updating setting:', error);
+    }
+  };
+
+  const initializeSettings = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/admin/content/initialize', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        fetchSettings();
+      }
+    } catch (error) {
+      console.error('Error initializing settings:', error);
+    }
+  };
+
+  if (role !== 'super_admin') {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger">
+          <h4>Access Denied</h4>
+          <p>You need super admin privileges to access content management.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container-fluid mt-4">
+      <div className="row">
+        <div className="col-12">
+          <div className="card">
+            <div className="card-header">
+              <h3 className="mb-0">
+                <i className="bi bi-gear-fill me-2"></i>
+                Content Management
+              </h3>
+            </div>
+            <div className="card-body">
+              <ul className="nav nav-tabs" id="contentTabs" role="tablist">
+                <li className="nav-item" role="presentation">
+                  <button 
+                    className={`nav-link ${activeTab === 'content' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('content')}
+                  >
+                    <i className="bi bi-images me-2"></i>
+                    Website Content
+                  </button>
+                </li>
+                <li className="nav-item" role="presentation">
+                  <button 
+                    className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('settings')}
+                  >
+                    <i className="bi bi-sliders me-2"></i>
+                    Site Settings
+                  </button>
+                </li>
+              </ul>
+
+              <div className="tab-content mt-3" id="contentTabContent">
+                {/* Content Management Tab */}
+                <div className={`tab-pane fade ${activeTab === 'content' ? 'show active' : ''}`}>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Manage Website Content</h5>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => setShowAddModal(true)}
+                    >
+                      <i className="bi bi-plus-circle me-2"></i>
+                      Add Content
+                    </button>
+                  </div>
+
+                  {loading ? (
+                    <div className="text-center">
+                      <div className="spinner-border" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead>
+                          <tr>
+                            <th>Type</th>
+                            <th>Key</th>
+                            <th>Title</th>
+                            <th>Media</th>
+                            <th>Order</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {content.map((item) => (
+                            <tr key={item.id}>
+                              <td>
+                                <span className={`badge bg-${item.content_type === 'image' ? 'success' : item.content_type === 'video' ? 'info' : 'secondary'}`}>
+                                  {item.content_type}
+                                </span>
+                              </td>
+                              <td>{item.content_key}</td>
+                              <td>{item.title}</td>
+                              <td>
+                                {item.media_url && (
+                                  <img 
+                                    src={`http://localhost:4000${item.media_url}`} 
+                                    alt={item.title}
+                                    style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                                    className="rounded"
+                                  />
+                                )}
+                              </td>
+                              <td>{item.display_order}</td>
+                              <td>
+                                <span className={`badge bg-${item.is_active ? 'success' : 'danger'}`}>
+                                  {item.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td>
+                                <button 
+                                  className="btn btn-sm btn-outline-primary me-2"
+                                  onClick={() => {
+                                    setSelectedContent(item);
+                                    setFormData({
+                                      content_type: item.content_type,
+                                      content_key: item.content_key,
+                                      title: item.title,
+                                      description: item.description || '',
+                                      media_type: item.media_type || '',
+                                      display_order: item.display_order,
+                                      is_active: item.is_active
+                                    });
+                                    setShowEditModal(true);
+                                  }}
+                                >
+                                  <i className="bi bi-pencil"></i>
+                                </button>
+                                <button 
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteContent(item.id)}
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Settings Tab */}
+                <div className={`tab-pane fade ${activeTab === 'settings' ? 'show active' : ''}`}>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Site Settings</h5>
+                    <div>
+                      <button 
+                        className="btn btn-outline-secondary me-2"
+                        onClick={initializeSettings}
+                      >
+                        <i className="bi bi-arrow-clockwise me-2"></i>
+                        Initialize Defaults
+                      </button>
+                      <button 
+                        className="btn btn-primary"
+                        onClick={() => setShowSettingsModal(true)}
+                      >
+                        <i className="bi bi-plus-circle me-2"></i>
+                        Add Setting
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="row">
+                    {settings.map((setting) => (
+                      <div key={setting.id} className="col-md-6 col-lg-4 mb-3">
+                        <div className="card">
+                          <div className="card-body">
+                            <h6 className="card-title">{setting.setting_key}</h6>
+                            <p className="card-text text-muted">{setting.description}</p>
+                            <p className="card-text">
+                              <strong>Value:</strong> {setting.setting_value}
+                            </p>
+                            <p className="card-text">
+                              <small className="text-muted">
+                                Type: {setting.setting_type} | 
+                                Updated by: {setting.updated_by_name || 'System'}
+                              </small>
+                            </p>
+                            <button 
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => {
+                                setSelectedSetting(setting);
+                                setSettingForm({
+                                  setting_key: setting.setting_key,
+                                  setting_value: setting.setting_value,
+                                  setting_type: setting.setting_type,
+                                  description: setting.description || ''
+                                });
+                                setShowSettingsModal(true);
+                              }}
+                            >
+                              <i className="bi bi-pencil me-1"></i>
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Content Modal */}
+      <div className={`modal fade ${showAddModal ? 'show' : ''}`} style={{ display: showAddModal ? 'block' : 'none' }}>
+        <div className="modal-dialog modal-lg">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Add New Content</h5>
+              <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
+            </div>
+            <form onSubmit={handleAddContent}>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <label className="form-label">Content Type</label>
+                      <select 
+                        className="form-select"
+                        value={formData.content_type}
+                        onChange={(e) => setFormData({...formData, content_type: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Type</option>
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                        <option value="text">Text</option>
+                        <option value="hero">Hero Section</option>
+                      </select>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Content Key</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        value={formData.content_key}
+                        onChange={(e) => setFormData({...formData, content_key: e.target.value})}
+                        placeholder="unique-content-key"
+                        required
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Title</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <label className="form-label">Description</label>
+                      <textarea 
+                        className="form-control"
+                        rows="3"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      ></textarea>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Media File</label>
+                      <input 
+                        type="file" 
+                        className="form-control"
+                        accept="image/*,video/*"
+                        name="media"
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Display Order</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={formData.display_order}
+                        onChange={(e) => setFormData({...formData, display_order: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <div className="form-check">
+                        <input 
+                          type="checkbox" 
+                          className="form-check-input"
+                          checked={formData.is_active}
+                          onChange={(e) => setFormData({...formData, is_active: e.target.checked ? 1 : 0})}
+                        />
+                        <label className="form-check-label">Active</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Add Content
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Content Modal */}
+      <div className={`modal fade ${showEditModal ? 'show' : ''}`} style={{ display: showEditModal ? 'block' : 'none' }}>
+        <div className="modal-dialog modal-lg">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Edit Content</h5>
+              <button type="button" className="btn-close" onClick={() => setShowEditModal(false)}></button>
+            </div>
+            <form onSubmit={handleUpdateContent}>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <label className="form-label">Content Type</label>
+                      <select 
+                        className="form-select"
+                        value={formData.content_type}
+                        onChange={(e) => setFormData({...formData, content_type: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Type</option>
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                        <option value="text">Text</option>
+                        <option value="hero">Hero Section</option>
+                      </select>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Content Key</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        value={formData.content_key}
+                        onChange={(e) => setFormData({...formData, content_key: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Title</label>
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="mb-3">
+                      <label className="form-label">Description</label>
+                      <textarea 
+                        className="form-control"
+                        rows="3"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      ></textarea>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Media File (leave empty to keep current)</label>
+                      <input 
+                        type="file" 
+                        className="form-control"
+                        accept="image/*,video/*"
+                        name="media"
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Display Order</label>
+                      <input 
+                        type="number" 
+                        className="form-control"
+                        value={formData.display_order}
+                        onChange={(e) => setFormData({...formData, display_order: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <div className="form-check">
+                        <input 
+                          type="checkbox" 
+                          className="form-check-input"
+                          checked={formData.is_active}
+                          onChange={(e) => setFormData({...formData, is_active: e.target.checked ? 1 : 0})}
+                        />
+                        <label className="form-check-label">Active</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Update Content
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Settings Modal */}
+      <div className={`modal fade ${showSettingsModal ? 'show' : ''}`} style={{ display: showSettingsModal ? 'block' : 'none' }}>
+        <div className="modal-dialog">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">
+                {selectedSetting ? 'Edit Setting' : 'Add Setting'}
+              </h5>
+              <button type="button" className="btn-close" onClick={() => setShowSettingsModal(false)}></button>
+            </div>
+            <form onSubmit={handleUpdateSetting}>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label">Setting Key</label>
+                  <input 
+                    type="text" 
+                    className="form-control"
+                    value={settingForm.setting_key}
+                    onChange={(e) => setSettingForm({...settingForm, setting_key: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Setting Value</label>
+                  <input 
+                    type="text" 
+                    className="form-control"
+                    value={settingForm.setting_value}
+                    onChange={(e) => setSettingForm({...settingForm, setting_value: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Setting Type</label>
+                  <select 
+                    className="form-select"
+                    value={settingForm.setting_type}
+                    onChange={(e) => setSettingForm({...settingForm, setting_type: e.target.value})}
+                  >
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="url">URL</option>
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Description</label>
+                  <textarea 
+                    className="form-control"
+                    rows="3"
+                    value={settingForm.description}
+                    onChange={(e) => setSettingForm({...settingForm, description: e.target.value})}
+                  ></textarea>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowSettingsModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  {selectedSetting ? 'Update Setting' : 'Add Setting'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Backdrop */}
+      {(showAddModal || showEditModal || showSettingsModal) && (
+        <div className="modal-backdrop fade show"></div>
+      )}
     </div>
   );
 };
@@ -6543,7 +7288,9 @@ function AppLayout({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: 
               {user && currentPath !== '/profiles' && <Nav.Link as={Link} to="/profiles">Profiles</Nav.Link>}
               {user && currentPath !== '/maps' && <Nav.Link as={Link} to="/maps">Maps</Nav.Link>}
               {role === 'admin' && <Nav.Link as={Link} to="/admin-events">Admin Events</Nav.Link>}
-        {role === 'admin' && <Nav.Link as={Link} to="/admin-skate-spots">Admin Skate Spots</Nav.Link>}
+              {role === 'admin' && <Nav.Link as={Link} to="/admin-skate-spots">Admin Skate Spots</Nav.Link>}
+              {role === 'super_admin' && <Nav.Link as={Link} to="/super-admin">Super Admin</Nav.Link>}
+              {role === 'super_admin' && <Nav.Link as={Link} to="/content-management">Content Management</Nav.Link>}
               {!user && currentPath !== '/login' && <Nav.Link as={Link} to="/login">Login</Nav.Link>}
             </Nav>
             <Nav className="ms-auto">
@@ -6581,6 +7328,8 @@ function AppLayout({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: 
           <Route path="/settings" element={<RequireAuth><Settings darkMode={darkMode} setDarkMode={setDarkMode} /></RequireAuth>} />
           <Route path="/messages" element={<RequireAuth><Messages /></RequireAuth>} />
           <Route path="/admin" element={<RequireAuth role="admin"><Admin /></RequireAuth>} />
+          <Route path="/super-admin" element={<RequireAuth role="super_admin"><SuperAdmin /></RequireAuth>} />
+          <Route path="/content-management" element={<RequireAuth role="super_admin"><ContentManagement /></RequireAuth>} />
         </Routes>
       </Container>
       <Footer />

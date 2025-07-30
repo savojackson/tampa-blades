@@ -192,6 +192,53 @@ db.serialize(() => {
   )`);
 });
 
+// Website content management table
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS website_content (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content_type TEXT NOT NULL,
+    content_key TEXT UNIQUE NOT NULL,
+    title TEXT,
+    description TEXT,
+    media_url TEXT,
+    media_type TEXT,
+    display_order INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_by INTEGER,
+    updated_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users (id),
+    FOREIGN KEY (updated_by) REFERENCES users (id)
+  )`);
+});
+
+// Content categories table
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS content_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    display_order INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+});
+
+// Content settings table
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS content_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    setting_key TEXT UNIQUE NOT NULL,
+    setting_value TEXT,
+    setting_type TEXT DEFAULT 'text',
+    description TEXT,
+    updated_by INTEGER,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users (id)
+  )`);
+});
+
 // Photo likes table
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS photo_likes (
@@ -1394,6 +1441,357 @@ app.get('/api/admin/logs', requireAuth, requireSuperAdmin, (req, res) => {
   ];
   
   res.json({ logs });
+});
+
+// ===== WEBSITE CONTENT MANAGEMENT API ENDPOINTS =====
+
+// Get all website content (super admin only)
+app.get('/api/admin/content', requireAuth, requireSuperAdmin, (req, res) => {
+  const { page = 1, limit = 20, type, category } = req.query;
+  const offset = (page - 1) * limit;
+  
+  let query = `
+    SELECT c.*, 
+           creator.username as created_by_name,
+           updater.username as updated_by_name
+    FROM website_content c
+    LEFT JOIN users creator ON c.created_by = creator.id
+    LEFT JOIN users updater ON c.updated_by = updater.id
+    WHERE 1=1
+  `;
+  const params = [];
+  
+  if (type) {
+    query += ' AND c.content_type = ?';
+    params.push(type);
+  }
+  
+  if (category) {
+    query += ' AND c.content_key LIKE ?';
+    params.push(`%${category}%`);
+  }
+  
+  query += ' ORDER BY c.display_order ASC, c.created_at DESC LIMIT ? OFFSET ?';
+  params.push(parseInt(limit), offset);
+  
+  db.all(query, params, (err, content) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch content' });
+    
+    // Get total count
+    let countQuery = 'SELECT COUNT(*) as total FROM website_content WHERE 1=1';
+    const countParams = [];
+    
+    if (type) {
+      countQuery += ' AND content_type = ?';
+      countParams.push(type);
+    }
+    
+    if (category) {
+      countQuery += ' AND content_key LIKE ?';
+      countParams.push(`%${category}%`);
+    }
+    
+    db.get(countQuery, countParams, (err, result) => {
+      if (err) return res.status(500).json({ error: 'Failed to get content count' });
+      
+      res.json({
+        content: content || [],
+        pagination: {
+          current: parseInt(page),
+          total: Math.ceil(result.total / limit),
+          hasMore: parseInt(page) * parseInt(limit) < result.total
+        }
+      });
+    });
+  });
+});
+
+// Get specific content by key (public)
+app.get('/api/content/:key', (req, res) => {
+  const { key } = req.params;
+  
+  db.get(`
+    SELECT c.*, 
+           creator.username as created_by_name,
+           updater.username as updated_by_name
+    FROM website_content c
+    LEFT JOIN users creator ON c.created_by = creator.id
+    LEFT JOIN users updater ON c.updated_by = updater.id
+    WHERE c.content_key = ? AND c.is_active = 1
+  `, [key], (err, content) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch content' });
+    if (!content) return res.status(404).json({ error: 'Content not found' });
+    
+    res.json({ content });
+  });
+});
+
+// Get content by type (public)
+app.get('/api/content/type/:type', (req, res) => {
+  const { type } = req.params;
+  
+  db.all(`
+    SELECT c.*, 
+           creator.username as created_by_name,
+           updater.username as updated_by_name
+    FROM website_content c
+    LEFT JOIN users creator ON c.created_by = creator.id
+    LEFT JOIN users updater ON c.updated_by = updater.id
+    WHERE c.content_type = ? AND c.is_active = 1
+    ORDER BY c.display_order ASC, c.created_at DESC
+  `, [type], (err, content) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch content' });
+    res.json({ content: content || [] });
+  });
+});
+
+// Create new content (super admin only)
+app.post('/api/admin/content', requireAuth, requireSuperAdmin, upload.single('media'), (req, res) => {
+  const { 
+    content_type, 
+    content_key, 
+    title, 
+    description, 
+    media_type,
+    display_order = 0,
+    is_active = 1 
+  } = req.body;
+  
+  if (!content_type || !content_key || !title) {
+    return res.status(400).json({ error: 'Content type, key, and title are required' });
+  }
+  
+  let mediaUrl = null;
+  if (req.file) {
+    mediaUrl = `/uploads/${req.file.filename}`;
+  }
+  
+  db.run(`
+    INSERT INTO website_content (
+      content_type, content_key, title, description, media_url, media_type,
+      display_order, is_active, created_by, updated_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    content_type, content_key, title, description, mediaUrl, media_type,
+    display_order, is_active, req.user.id, req.user.id
+  ], function (err) {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to create content' });
+    }
+    
+    res.json({
+      success: true,
+      contentId: this.lastID,
+      message: 'Content created successfully'
+    });
+  });
+});
+
+// Update content (super admin only)
+app.put('/api/admin/content/:id', requireAuth, requireSuperAdmin, upload.single('media'), (req, res) => {
+  const { id } = req.params;
+  const { 
+    content_type, 
+    content_key, 
+    title, 
+    description, 
+    media_type,
+    display_order,
+    is_active 
+  } = req.body;
+  
+  // First get existing content
+  db.get('SELECT * FROM website_content WHERE id = ?', [id], (err, existing) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch content' });
+    if (!existing) return res.status(404).json({ error: 'Content not found' });
+    
+    let mediaUrl = existing.media_url;
+    if (req.file) {
+      mediaUrl = `/uploads/${req.file.filename}`;
+    }
+    
+    const updateFields = [];
+    const params = [];
+    
+    if (content_type !== undefined) {
+      updateFields.push('content_type = ?');
+      params.push(content_type);
+    }
+    if (content_key !== undefined) {
+      updateFields.push('content_key = ?');
+      params.push(content_key);
+    }
+    if (title !== undefined) {
+      updateFields.push('title = ?');
+      params.push(title);
+    }
+    if (description !== undefined) {
+      updateFields.push('description = ?');
+      params.push(description);
+    }
+    if (mediaUrl !== existing.media_url) {
+      updateFields.push('media_url = ?');
+      params.push(mediaUrl);
+    }
+    if (media_type !== undefined) {
+      updateFields.push('media_type = ?');
+      params.push(media_type);
+    }
+    if (display_order !== undefined) {
+      updateFields.push('display_order = ?');
+      params.push(display_order);
+    }
+    if (is_active !== undefined) {
+      updateFields.push('is_active = ?');
+      params.push(is_active);
+    }
+    
+    updateFields.push('updated_by = ?');
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    params.push(req.user.id);
+    params.push(id);
+    
+    const query = `UPDATE website_content SET ${updateFields.join(', ')} WHERE id = ?`;
+    
+    db.run(query, params, function (err) {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Failed to update content' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Content updated successfully'
+      });
+    });
+  });
+});
+
+// Delete content (super admin only)
+app.delete('/api/admin/content/:id', requireAuth, requireSuperAdmin, (req, res) => {
+  const { id } = req.params;
+  
+  db.run('DELETE FROM website_content WHERE id = ?', [id], function (err) {
+    if (err) return res.status(500).json({ error: 'Failed to delete content' });
+    if (this.changes === 0) return res.status(404).json({ error: 'Content not found' });
+    
+    res.json({ success: true, message: 'Content deleted successfully' });
+  });
+});
+
+// Get content categories (super admin only)
+app.get('/api/admin/content/categories', requireAuth, requireSuperAdmin, (req, res) => {
+  db.all('SELECT * FROM content_categories ORDER BY display_order ASC, name ASC', [], (err, categories) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch categories' });
+    res.json({ categories: categories || [] });
+  });
+});
+
+// Create content category (super admin only)
+app.post('/api/admin/content/categories', requireAuth, requireSuperAdmin, (req, res) => {
+  const { name, description, display_order = 0 } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: 'Category name is required' });
+  }
+  
+  db.run('INSERT INTO content_categories (name, description, display_order) VALUES (?, ?, ?)',
+    [name, description, display_order],
+    function (err) {
+      if (err) return res.status(500).json({ error: 'Failed to create category' });
+      
+      res.json({
+        success: true,
+        categoryId: this.lastID,
+        message: 'Category created successfully'
+      });
+    }
+  );
+});
+
+// Get content settings (super admin only)
+app.get('/api/admin/content/settings', requireAuth, requireSuperAdmin, (req, res) => {
+  db.all(`
+    SELECT s.*, u.username as updated_by_name
+    FROM content_settings s
+    LEFT JOIN users u ON s.updated_by = u.id
+    ORDER BY s.setting_key ASC
+  `, [], (err, settings) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch settings' });
+    res.json({ settings: settings || [] });
+  });
+});
+
+// Update content setting (super admin only)
+app.put('/api/admin/content/settings/:key', requireAuth, requireSuperAdmin, (req, res) => {
+  const { key } = req.params;
+  const { setting_value, setting_type, description } = req.body;
+  
+  db.run(`
+    INSERT OR REPLACE INTO content_settings 
+    (setting_key, setting_value, setting_type, description, updated_by, updated_at)
+    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `, [key, setting_value, setting_type, description, req.user.id],
+  function (err) {
+    if (err) return res.status(500).json({ error: 'Failed to update setting' });
+    
+    res.json({
+      success: true,
+      message: 'Setting updated successfully'
+    });
+  });
+});
+
+// Get public content settings
+app.get('/api/content/settings/:key', (req, res) => {
+  const { key } = req.params;
+  
+  db.get('SELECT setting_key, setting_value, setting_type FROM content_settings WHERE setting_key = ?', 
+    [key], (err, setting) => {
+      if (err) return res.status(500).json({ error: 'Failed to fetch setting' });
+      if (!setting) return res.status(404).json({ error: 'Setting not found' });
+      
+      res.json({ setting });
+    }
+  );
+});
+
+// Initialize default content settings
+app.post('/api/admin/content/initialize', requireAuth, requireSuperAdmin, (req, res) => {
+  const defaultSettings = [
+    { key: 'welcome_title', value: 'Welcome to the Skate Community', type: 'text', description: 'Main welcome title' },
+    { key: 'welcome_subtitle', value: 'Connect, discover, and share your passion for skating', type: 'text', description: 'Welcome subtitle' },
+    { key: 'hero_video_url', value: '', type: 'url', description: 'Hero section video URL' },
+    { key: 'hero_image_url', value: '', type: 'url', description: 'Hero section image URL' },
+    { key: 'featured_events_count', value: '3', type: 'number', description: 'Number of featured events to show' },
+    { key: 'community_highlights_enabled', value: 'true', type: 'boolean', description: 'Enable community highlights section' },
+    { key: 'footer_text', value: 'Built with ❤️ for the Tampa skate community', type: 'text', description: 'Footer text' }
+  ];
+  
+  let completed = 0;
+  const total = defaultSettings.length;
+  
+  defaultSettings.forEach(setting => {
+    db.run(`
+      INSERT OR IGNORE INTO content_settings 
+      (setting_key, setting_value, setting_type, description, updated_by)
+      VALUES (?, ?, ?, ?, ?)
+    `, [setting.key, setting.value, setting.type, setting.description, req.user.id],
+    function (err) {
+      if (err) {
+        console.error('Error initializing setting:', setting.key, err);
+      }
+      completed++;
+      
+      if (completed === total) {
+        res.json({
+          success: true,
+          message: 'Default content settings initialized successfully'
+        });
+      }
+    });
+  });
 });
 
 // Start server
