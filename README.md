@@ -55,7 +55,7 @@ A comprehensive web application for the Tampa skate community, featuring event m
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v16 or higher)
+- Node.js (v18 or higher)
 - npm or yarn
 - Git
 
@@ -88,24 +88,40 @@ A comprehensive web application for the Tampa skate community, featuring event m
    OPENWEATHER_API_KEY=your_openweather_api_key
    ```
 
-5. **Start the backend server**
+5. **Start the application**
+   
+   **Option A: Using the development script (Recommended)**
+   ```bash
+   npm run dev
+   ```
+   This will start both backend and frontend servers concurrently.
+   
+   **Option B: Manual startup**
+   
+   Start the backend server:
    ```bash
    cd backend
    node server.js
    ```
-
-6. **Start the frontend development server**
-   In a new terminal:
+   
+   In a new terminal, start the frontend development server:
    ```bash
    npm start
    ```
+   
+   If port 3000 is already in use, the frontend will automatically use the next available port (usually 3001).
 
-7. **Open your browser**
-   Navigate to `http://localhost:3000`
+6. **Open your browser**
+   Navigate to `http://localhost:3000` (or the port shown in the terminal)
 
 ### Alternative: Using PowerShell Scripts
 - **Windows**: Run `start-app.ps1` or `start-app.bat`
 - **Linux/Mac**: Run `./start-app.sh` (make executable first)
+
+### Port Configuration
+- **Backend**: Runs on port 4000 by default
+- **Frontend**: Runs on port 3000 by default, automatically switches to next available port if 3000 is busy
+- **Database**: SQLite database file (`db.sqlite`) in the backend directory
 
 ## 📁 Project Structure
 
@@ -138,12 +154,13 @@ tampa-blades/
 ## 🛠️ Technology Stack
 
 ### Frontend
-- **React 18** - Modern UI framework with hooks
-- **TypeScript** - Type safety and better development experience
+- **React 19** - Latest UI framework with hooks and concurrent features
+- **TypeScript** - Full type safety with comprehensive interfaces and type definitions
 - **React Bootstrap** - Responsive UI components
-- **React Router v6** - Client-side routing
+- **React Router v7** - Latest client-side routing with enhanced features
 - **React Leaflet** - Interactive maps with OpenStreetMap
-- **Axios** - HTTP client for API communication
+- **Giphy Integration** - GIF search and sharing capabilities
+- **Emoji Picker** - Enhanced messaging with emoji support
 - **Bootstrap Icons** - Icon library
 - **CSS3** - Custom animations and responsive design
 
@@ -212,9 +229,27 @@ tampa-blades/
 - `GET /api/stats` - Get public community statistics
 - `GET /api/admin/stats` - Get system statistics (super admin)
 
-## 🔧 Configuration
+## 🔧 Recent Updates & Improvements
 
-### Environment Variables
+### TypeScript Enhancements (Latest)
+- **Complete Type Safety**: Added comprehensive TypeScript interfaces for all components
+- **Form Data Types**: Properly typed form data with interfaces for Content Management
+- **Event Handler Types**: All event handlers now have proper TypeScript types
+- **Null Safety**: Added optional chaining and null checks throughout the application
+- **Type Definitions**: Created interfaces for ContentItem, SettingItem, FormData, and SettingFormData
+
+### Bug Fixes
+- **Form Input Types**: Fixed textarea rows attribute and checkbox checked states
+- **API Integration**: Improved error handling and type safety for API calls
+- **Component Props**: Enhanced prop types for better development experience
+- **State Management**: Properly typed React state with generics
+
+### Performance Improvements
+- **Concurrent Features**: Updated to React 19 for better performance
+- **Type Checking**: Faster TypeScript compilation with proper type definitions
+- **Bundle Optimization**: Improved build process and dependency management
+
+## 🔧 Configuration
 Create a `config.env` file in the backend directory with the following variables:
 
 ```env
@@ -324,10 +359,26 @@ If you have any questions or need help:
 3. **Contact the Team** - Reach out for direct support
 
 ### Common Issues
+
+#### Port Conflicts
+- **Port 3000 already in use**: The frontend will automatically use the next available port (3001, 3002, etc.)
+- **Port 4000 already in use**: Change the PORT in your `config.env` file or stop the process using port 4000
+
+#### Backend Issues
 - **Backend not starting**: Ensure you're in the `backend` directory and have all dependencies installed
 - **API errors**: Check that environment variables are properly set
 - **File upload issues**: Verify the uploads directory exists and has proper permissions
 - **Database errors**: Ensure SQLite is properly installed and the database file is writable
+
+#### Frontend Issues
+- **TypeScript errors**: All TypeScript errors have been resolved in the latest version
+- **Build failures**: Ensure all dependencies are installed with `npm install`
+- **Hot reload not working**: Check that the development server is running on the correct port
+
+#### Development Issues
+- **Concurrent server startup**: Use `npm run dev` to start both servers simultaneously
+- **PowerShell command issues**: Use separate commands instead of `&&` in PowerShell
+- **File watching**: Ensure your IDE has proper file watching permissions
 
 ---
 
