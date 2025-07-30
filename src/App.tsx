@@ -14,106 +14,201 @@ const Landing = () => {
   const navigate = useNavigate();
   const [upcomingEvents, setUpcomingEvents] = React.useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = React.useState(true);
+  const [communityStats, setCommunityStats] = React.useState([
+    { label: "Active Members", value: "0", icon: "bi-people-fill", color: "primary" },
+    { label: "Events This Month", value: "0", icon: "bi-calendar-event", color: "success" },
+    { label: "Skate Spots", value: "0", icon: "bi-geo-alt", color: "info" },
+    { label: "Photos Shared", value: "0", icon: "bi-camera", color: "warning" }
+  ]);
+  const [loadingStats, setLoadingStats] = React.useState(true);
+
+  // Fetch community statistics from API
+  const fetchCommunityStats = async () => {
+    try {
+      // Fetch all stats from the public stats endpoint
+      const statsResponse = await fetch('http://localhost:4000/api/stats');
+      const statsData = await statsResponse.json();
+      
+      // Fetch events count for this month
+      const eventsResponse = await fetch('http://localhost:4000/api/events');
+      const eventsData = await eventsResponse.json();
+      const now = new Date();
+      const thisMonthEvents = eventsData.events?.filter((event: any) => {
+        const eventDate = new Date(event.date);
+        return eventDate.getMonth() === now.getMonth() && eventDate.getFullYear() === now.getFullYear();
+      }).length || 0;
+      
+      setCommunityStats([
+        { 
+          label: "Active Members", 
+          value: statsData.stats?.totalUsers?.toString() || "0", 
+          icon: "bi-people-fill", 
+          color: "primary" 
+        },
+        { 
+          label: "Events This Month", 
+          value: thisMonthEvents.toString(), 
+          icon: "bi-calendar-event", 
+          color: "success" 
+        },
+        { 
+          label: "Skate Spots", 
+          value: statsData.stats?.totalSkateSpots?.toString() || "0", 
+          icon: "bi-geo-alt", 
+          color: "info" 
+        },
+        { 
+          label: "Photos Shared", 
+          value: statsData.stats?.totalPhotos?.toString() || "0", 
+          icon: "bi-camera", 
+          color: "warning" 
+        }
+      ]);
+    } catch (error) {
+      console.error('Failed to fetch community stats:', error);
+      // Keep default values if API fails
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   // Fetch upcoming events from API
-  React.useEffect(() => {
-    const fetchUpcomingEvents = async () => {
-      try {
-        const response = await fetch('http://localhost:4000/api/events');
-        const data = await response.json();
-        
-        // Filter for upcoming events (next 30 days)
-        const now = new Date();
-        const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-        
-        const upcoming = data.events?.filter((event: any) => {
-          const eventDate = new Date(event.date);
-          return eventDate >= now && eventDate <= thirtyDaysFromNow;
-        }).slice(0, 3) || [];
-        
-        setUpcomingEvents(upcoming);
-      } catch (error) {
-        console.error('Failed to fetch upcoming events:', error);
-        // Fallback to sample data if API fails
-        setUpcomingEvents([
-          {
-            id: 1,
-            title: "Friday Night Skate",
-            date: "Dec 15, 2024",
-            startTime: "19:00",
-            endTime: "21:00",
-            location: "Bayshore Blvd",
-            eventType: "meetup",
-            image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"
-          },
-          {
-            id: 2,
-            title: "Skate Park Meetup",
-            date: "Dec 18, 2024",
-            startTime: "17:00",
-            endTime: "19:00",
-            location: "Tampa Skate Park",
-            eventType: "meetup",
-            image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"
-          },
-          {
-            id: 3,
-            title: "Beginner's Session",
-            date: "Dec 20, 2024",
-            startTime: "18:00",
-            endTime: "20:00",
-            location: "Community Center",
-            eventType: "workshop",
-            image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"
-          }
-        ]);
-      } finally {
-        setLoadingEvents(false);
-      }
-    };
+  const fetchUpcomingEvents = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/events');
+      const data = await response.json();
+      
+      // Filter for upcoming events (next 30 days)
+      const now = new Date();
+      const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+      
+      const upcoming = data.events?.filter((event: any) => {
+        const eventDate = new Date(event.date);
+        return eventDate >= now && eventDate <= thirtyDaysFromNow;
+      }).slice(0, 3) || [];
+      
+      setUpcomingEvents(upcoming);
+    } catch (error) {
+      console.error('Failed to fetch upcoming events:', error);
+      // Fallback to sample data if API fails
+      setUpcomingEvents([
+        {
+          id: 1,
+          title: "Friday Night Skate",
+          date: "Dec 15, 2024",
+          startTime: "19:00",
+          endTime: "21:00",
+          location: "Bayshore Blvd",
+          eventType: "meetup",
+          image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"
+        },
+        {
+          id: 2,
+          title: "Skate Park Meetup",
+          date: "Dec 18, 2024",
+          startTime: "17:00",
+          endTime: "19:00",
+          location: "Tampa Skate Park",
+          eventType: "meetup",
+          image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"
+        },
+        {
+          id: 3,
+          title: "Beginner's Session",
+          date: "Dec 20, 2024",
+          startTime: "18:00",
+          endTime: "20:00",
+          location: "Community Center",
+          eventType: "workshop",
+          image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"
+        }
+      ]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
 
+  // Fetch data on component mount
+  React.useEffect(() => {
+    fetchCommunityStats();
     fetchUpcomingEvents();
   }, []);
 
-  const communityStats = [
-    { label: "Active Members", value: "500+", icon: "bi-people-fill", color: "primary" },
-    { label: "Events This Month", value: "12", icon: "bi-calendar-event", color: "success" },
-    { label: "Skate Spots", value: "25+", icon: "bi-geo-alt", color: "info" },
-    { label: "Years Strong", value: "5+", icon: "bi-award", color: "warning" }
-  ];
 
-  const quickActions = [
+
+  const quickActions = user ? [
+    // Actions for logged-in users
     {
-      title: "Browse Events",
-      description: "Find upcoming skating events and meetups",
-      icon: "bi-calendar-event",
+      title: "Add Event",
+      description: "Create and share a new skating event with the community",
+      icon: "bi-plus-circle",
       color: "primary",
-      link: "/events",
+      action: () => navigate('/events'),
+      requiresAuth: true
+    },
+    {
+      title: "Share Photo",
+      description: "Upload and share your skating photos with the community",
+      icon: "bi-camera",
+      color: "success",
+      action: () => navigate('/gallery'),
+      requiresAuth: true
+    },
+    {
+      title: "Find Spots",
+      description: "Discover new skate spots and add your favorites",
+      icon: "bi-geo-alt",
+      color: "info",
+      action: () => navigate('/maps'),
+      requiresAuth: true
+    },
+    {
+      title: "Connect",
+      description: "Meet and connect with fellow skaters in the community",
+      icon: "bi-people",
+      color: "warning",
+      action: () => navigate('/profiles'),
+      requiresAuth: true
+    }
+  ] : [
+    // Actions for non-logged users
+    {
+      title: "Join Community",
+      description: "Sign up and become part of our growing skating community",
+      icon: "bi-person-plus",
+      color: "primary",
+      action: () => navigate('/login'),
       requiresAuth: false
     },
     {
-      title: "Meet Members",
-      description: "Connect with fellow skaters in the community",
-      icon: "bi-people",
+      title: "Browse Events",
+      description: "See upcoming skating events and meetups in your area",
+      icon: "bi-calendar-event",
       color: "success",
-      link: "/profiles",
-      requiresAuth: true
+      action: () => navigate('/events'),
+      requiresAuth: false
     },
     {
-      title: "Skate Spots",
-      description: "Discover the best places to skate in your area",
-      icon: "bi-map",
+      title: "Learn More",
+      description: "Discover what our community has to offer",
+      icon: "bi-info-circle",
       color: "info",
-      link: "/maps",
-      requiresAuth: true
+      action: () => {
+        // Scroll to community highlights section
+        const highlightsSection = document.querySelector('.community-highlights');
+        if (highlightsSection) {
+          highlightsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      },
+      requiresAuth: false
     },
     {
-      title: "Community Chat",
-      description: "Join conversations with other skaters",
-      icon: "bi-chat-dots",
+      title: "View Gallery",
+      description: "Check out amazing photos from our community members",
+      icon: "bi-images",
       color: "warning",
-      link: "/chat",
-      requiresAuth: true
+      action: () => navigate('/gallery'),
+      requiresAuth: false
     }
   ];
 
@@ -124,7 +219,7 @@ const Landing = () => {
         <div className="row align-items-center">
           <div className="col-lg-6">
             <h1 className="display-4 fw-bold mb-3">
-              Welcome to <span className="text-primary">Skate Community</span>
+              Welcome to <span className="text-primary">the Skate Community</span>
             </h1>
             <p className="lead mb-4">
               The premier roller skating community. Connect with fellow skaters, 
@@ -144,12 +239,21 @@ const Landing = () => {
             )}
           </div>
           <div className="col-lg-6">
-            <div className="welcome-image">
-              <img 
-                src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=600&q=80" 
-                alt="Roller Skating Community"
-                className="img-fluid rounded-3 shadow"
-              />
+            <div className="welcome-video">
+              <div className="video-container rounded-3 shadow">
+                <div className="video-placeholder">
+                  <div className="video-content">
+                    <i className="bi bi-play-circle-fill fs-1 text-primary mb-3"></i>
+                    <h5 className="text-white mb-2">Community Video</h5>
+                    <p className="text-white-50 mb-0">Watch our latest community highlights</p>
+                  </div>
+                </div>
+                {/* Video will be added here - you can replace this with an actual video element */}
+                {/* <video className="w-100 rounded-3" controls>
+                  <source src="your-video-url.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video> */}
+              </div>
             </div>
           </div>
         </div>
@@ -158,23 +262,40 @@ const Landing = () => {
       {/* Community Statistics */}
       <section className="stats-section mb-5">
         <div className="row">
-          {communityStats.map((stat, index) => (
-            <div key={index} className="col-lg-3 col-md-6 mb-4">
-              <div className="stat-card text-center p-4">
-                <div className={`stat-icon mb-3 text-${stat.color}`}>
-                  <i className={`bi ${stat.icon} fs-1`}></i>
+          {loadingStats ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="col-lg-3 col-md-6 mb-4">
+                <div className="stat-card text-center p-4">
+                  <div className="stat-icon mb-3 text-primary">
+                    <div className="skeleton-icon" style={{ width: '48px', height: '48px', margin: '0 auto', background: '#e9ecef', borderRadius: '8px' }}></div>
+                  </div>
+                  <div className="skeleton-number mb-2" style={{ width: '60px', height: '32px', background: '#e9ecef', borderRadius: '4px', margin: '0 auto' }}></div>
+                  <div className="skeleton-label" style={{ width: '100px', height: '16px', background: '#e9ecef', borderRadius: '4px', margin: '0 auto' }}></div>
                 </div>
-                <h3 className="stat-number fw-bold mb-2">{stat.value}</h3>
-                <p className="stat-label text-muted mb-0">{stat.label}</p>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            communityStats.map((stat, index) => (
+              <div key={index} className="col-lg-3 col-md-6 mb-4">
+                <div className="stat-card text-center p-4">
+                  <div className={`stat-icon mb-3 text-${stat.color}`}>
+                    <i className={`bi ${stat.icon} fs-1`}></i>
+                  </div>
+                  <h3 className="stat-number fw-bold mb-2">{stat.value}</h3>
+                  <p className="stat-label text-muted mb-0">{stat.label}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
       {/* Quick Actions */}
       <section className="quick-actions mb-5">
-        <h2 className="section-title mb-4">Quick Actions</h2>
+        <h2 className="section-title mb-4">
+          {user ? "Quick Actions" : "Get Started"}
+        </h2>
         <div className="row">
           {quickActions.map((action, index) => (
             <div key={index} className="col-lg-3 col-md-6 mb-4">
@@ -186,24 +307,123 @@ const Landing = () => {
                     </div>
                     <h5 className="card-title mb-3">{action.title}</h5>
                     <p className="card-text text-muted mb-4">{action.description}</p>
-                    {action.requiresAuth && !user ? (
-                      <Button variant="outline-secondary" size="sm" onClick={() => navigate('/login')}>
-                        Login Required
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant={`outline-${action.color}`} 
-                        size="sm" 
-                        onClick={() => navigate(action.link)}
-                      >
-                        Explore
-                      </Button>
-                    )}
+                    <Button 
+                      variant={`outline-${action.color}`} 
+                      size="sm" 
+                      onClick={action.action}
+                      className="w-100"
+                    >
+                      {action.title}
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Community Highlights */}
+      <section className="community-highlights mb-5">
+        <h2 className="section-title mb-4">Community Highlights</h2>
+        <div className="row">
+          <div className="col-lg-3 col-md-6 mb-4">
+            <div className="highlight-card h-100">
+              <div className="card h-100 border-0 shadow-sm">
+                <div className="card-body text-center p-4">
+                  <div className="highlight-icon mb-3 text-warning">
+                    <i className="bi bi-star-fill fs-1"></i>
+                  </div>
+                  <h5 className="card-title mb-3">Featured Event</h5>
+                  <p className="card-text text-muted mb-4">Check out our most popular upcoming event</p>
+                  
+                  {upcomingEvents.length > 0 ? (
+                    <div className="highlight-content">
+                      <h6 className="text-primary mb-2">{upcomingEvents[0].title}</h6>
+                      <p className="small text-muted mb-3">
+                        <i className="bi bi-calendar-event me-1"></i>
+                        {upcomingEvents[0].date} • {upcomingEvents[0].startTime}
+                      </p>
+                      <Button 
+                        variant="outline-primary" 
+                        size="sm"
+                        onClick={() => navigate('/events')}
+                      >
+                        View Event
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="highlight-placeholder">
+                      <div className="placeholder-content">
+                        <i className="bi bi-clock text-muted fs-4 mb-2"></i>
+                        <p className="small text-muted mb-0">No upcoming events</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="col-lg-3 col-md-6 mb-4">
+            <div className="highlight-card h-100">
+              <div className="card h-100 border-0 shadow-sm">
+                <div className="card-body text-center p-4">
+                  <div className="highlight-icon mb-3 text-primary">
+                    <i className="bi bi-person-badge fs-1"></i>
+                  </div>
+                  <h5 className="card-title mb-3">Community Spotlight</h5>
+                  <p className="card-text text-muted mb-4">Meet our most active community member</p>
+                  <div className="highlight-placeholder">
+                    <div className="placeholder-content">
+                      <i className="bi bi-clock text-muted fs-4 mb-2"></i>
+                      <p className="small text-muted mb-0">Coming soon...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="col-lg-3 col-md-6 mb-4">
+            <div className="highlight-card h-100">
+              <div className="card h-100 border-0 shadow-sm">
+                <div className="card-body text-center p-4">
+                  <div className="highlight-icon mb-3 text-success">
+                    <i className="bi bi-geo-alt-fill fs-1"></i>
+                  </div>
+                  <h5 className="card-title mb-3">Spot of the Week</h5>
+                  <p className="card-text text-muted mb-4">Discover this week's featured skate spot</p>
+                  <div className="highlight-placeholder">
+                    <div className="placeholder-content">
+                      <i className="bi bi-clock text-muted fs-4 mb-2"></i>
+                      <p className="small text-muted mb-0">Coming soon...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="col-lg-3 col-md-6 mb-4">
+            <div className="highlight-card h-100">
+              <div className="card h-100 border-0 shadow-sm">
+                <div className="card-body text-center p-4">
+                  <div className="highlight-icon mb-3 text-info">
+                    <i className="bi bi-camera-fill fs-1"></i>
+                  </div>
+                  <h5 className="card-title mb-3">Photo of the Day</h5>
+                  <p className="card-text text-muted mb-4">Amazing shot from our community</p>
+                  <div className="highlight-placeholder">
+                    <div className="placeholder-content">
+                      <i className="bi bi-clock text-muted fs-4 mb-2"></i>
+                      <p className="small text-muted mb-0">Coming soon...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -4446,6 +4666,38 @@ const Events = () => {
   
   // Ref for auto-scrolling to form
   const formRef = React.useRef<HTMLDivElement>(null);
+  const [showScrollTop, setShowScrollTop] = React.useState(false);
+
+  // Smooth scroll utility function
+  const smoothScrollTo = (element: HTMLElement | null, options = {}) => {
+    if (!element) return;
+    
+    const defaultOptions = {
+      behavior: 'smooth' as ScrollBehavior,
+      block: 'center' as ScrollLogicalPosition,
+      inline: 'nearest' as ScrollLogicalPosition
+    };
+    
+    element.scrollIntoView({ ...defaultOptions, ...options });
+  };
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Handle scroll events for scroll-to-top button
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const fetchEvents = async () => {
     try {
@@ -4615,24 +4867,32 @@ const Events = () => {
     const formattedDate = date.toISOString().split('T')[0];
     setDate(formattedDate);
     setShowAddEventForm(true);
-    // Auto-scroll to form after a short delay to ensure it's rendered
+    // Enhanced smooth scroll to form with better timing
     setTimeout(() => {
-      formRef.current?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }, 100);
+      smoothScrollTo(formRef.current, { block: 'center' });
+      if (formRef.current) {
+        // Add a subtle highlight effect
+        formRef.current.classList.add('highlight-form');
+        setTimeout(() => {
+          formRef.current?.classList.remove('highlight-form');
+        }, 2000);
+      }
+    }, 150);
   };
 
   const handleAddEventClick = () => {
     setShowForm(true);
-    // Auto-scroll to form after a short delay to ensure it's rendered
+    // Enhanced smooth scroll to form with better timing
     setTimeout(() => {
-      formRef.current?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }, 100);
+      smoothScrollTo(formRef.current, { block: 'center' });
+      if (formRef.current) {
+        // Add a subtle highlight effect
+        formRef.current.classList.add('highlight-form');
+        setTimeout(() => {
+          formRef.current?.classList.remove('highlight-form');
+        }, 2000);
+      }
+    }, 150);
   };
 
   // Calendar functions
@@ -4913,7 +5173,7 @@ const Events = () => {
 
       {/* Add Event Form */}
       {(showForm || showAddEventForm) && (
-        <div className="card mb-4" ref={formRef}>
+        <div className="card mb-4 event-form-section" ref={formRef}>
           <div className="card-header">
             <h5>
               {showAddEventForm && selectedDate ? (
@@ -5370,6 +5630,31 @@ const Events = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="btn btn-primary back-to-top show"
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            zIndex: 1000,
+            borderRadius: '50%',
+            width: '50px',
+            height: '50px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0, 123, 255, 0.3)',
+            border: 'none'
+          }}
+          title="Scroll to top"
+        >
+          <i className="bi bi-arrow-up"></i>
+        </button>
       )}
     </div>
   );
@@ -6114,6 +6399,7 @@ function WeatherWidget() {
 const UserDropdown: React.FC = () => {
   const { user, logout, role } = useAuth();
   const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = React.useState(false);
 
   const handleLogout = () => {
     logout();
@@ -6125,11 +6411,34 @@ const UserDropdown: React.FC = () => {
     return username.substring(0, 2).toUpperCase();
   };
 
+  const toggleDropdown = () => {
+    setShowDropdown(!showDropdown);
+  };
+
+  const closeDropdown = () => {
+    setShowDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.user-dropdown-container')) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <Dropdown align="end">
-      <Dropdown.Toggle 
-        variant="outline-light" 
-        id="user-dropdown"
+    <div className="user-dropdown-container position-relative">
+      <button
+        onClick={toggleDropdown}
+        className="btn btn-outline-light"
         title={`${user} - Click for account options`}
         style={{
           borderRadius: '50%',
@@ -6148,47 +6457,68 @@ const UserDropdown: React.FC = () => {
         }}
       >
         {getInitials(user || '')}
-      </Dropdown.Toggle>
+      </button>
 
-      <Dropdown.Menu style={{ minWidth: '200px', marginTop: '8px' }}>
-        <Dropdown.Header>
-          <div style={{ fontWeight: 'bold' }}>{user}</div>
-          <div style={{ fontSize: '12px', color: '#6c757d' }}>
-            {role === 'admin' ? 'Administrator' : 'User'}
+      {showDropdown && (
+        <div 
+          className="dropdown-menu show position-absolute"
+          style={{ 
+            minWidth: '200px', 
+            marginTop: '8px',
+            right: '0',
+            zIndex: 9999,
+            backgroundColor: 'white',
+            border: '1px solid rgba(0,0,0,.15)',
+            borderRadius: '0.375rem',
+            boxShadow: '0 0.5rem 1rem rgba(0, 0, 0, 0.15)'
+          }}
+        >
+          <div className="dropdown-header">
+            <div style={{ fontWeight: 'bold' }}>{user}</div>
+            <div style={{ fontSize: '12px', color: '#6c757d' }}>
+              {role === 'admin' ? 'Administrator' : 'User'}
+            </div>
           </div>
-        </Dropdown.Header>
-        <Dropdown.Divider />
-        <Dropdown.Item as={Link} to="/profile">
-          <i className="bi bi-person" style={{ marginRight: '8px' }}></i>
-          My Profile
-        </Dropdown.Item>
-        <Dropdown.Item as={Link} to="/messages">
-          <i className="bi bi-chat-dots" style={{ marginRight: '8px' }}></i>
-          Messages
-        </Dropdown.Item>
-        <Dropdown.Item as={Link} to="/settings">
-          <i className="bi bi-gear" style={{ marginRight: '8px' }}></i>
-          Settings
-        </Dropdown.Item>
-        {role === 'admin' && (
-          <Dropdown.Item as={Link} to="/admin">
-            <i className="bi bi-shield" style={{ marginRight: '8px' }}></i>
-            Admin Panel
-          </Dropdown.Item>
-        )}
-        {role === 'admin' && (
-          <Dropdown.Item as={Link} to="/admin-skate-spots">
-            <i className="bi bi-geo-alt" style={{ marginRight: '8px' }}></i>
-            Manage Skate Spots
-          </Dropdown.Item>
-        )}
-        <Dropdown.Divider />
-        <Dropdown.Item onClick={handleLogout} style={{ color: '#dc3545' }}>
-          <i className="bi bi-box-arrow-right" style={{ marginRight: '8px' }}></i>
-          Logout
-        </Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
+          <div className="dropdown-divider"></div>
+          <Link to="/profile" className="dropdown-item" onClick={closeDropdown}>
+            <i className="bi bi-person" style={{ marginRight: '8px' }}></i>
+            My Profile
+          </Link>
+          <Link to="/messages" className="dropdown-item" onClick={closeDropdown}>
+            <i className="bi bi-chat-dots" style={{ marginRight: '8px' }}></i>
+            Messages
+          </Link>
+          <Link to="/settings" className="dropdown-item" onClick={closeDropdown}>
+            <i className="bi bi-gear" style={{ marginRight: '8px' }}></i>
+            Settings
+          </Link>
+          {role === 'admin' && (
+            <Link to="/admin" className="dropdown-item" onClick={closeDropdown}>
+              <i className="bi bi-shield" style={{ marginRight: '8px' }}></i>
+              Admin Panel
+            </Link>
+          )}
+          {role === 'admin' && (
+            <Link to="/admin-skate-spots" className="dropdown-item" onClick={closeDropdown}>
+              <i className="bi bi-geo-alt" style={{ marginRight: '8px' }}></i>
+              Manage Skate Spots
+            </Link>
+          )}
+          <div className="dropdown-divider"></div>
+          <button 
+            onClick={() => {
+              closeDropdown();
+              handleLogout();
+            }} 
+            className="dropdown-item"
+            style={{ color: '#dc3545', border: 'none', background: 'none', width: '100%', textAlign: 'left', padding: '0.25rem 1rem' }}
+          >
+            <i className="bi bi-box-arrow-right" style={{ marginRight: '8px' }}></i>
+            Logout
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 

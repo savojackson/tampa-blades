@@ -1284,6 +1284,50 @@ app.delete('/api/admin/users/:id', requireAuth, requireSuperAdmin, (req, res) =>
   });
 });
 
+// Get public community statistics (no auth required)
+app.get('/api/stats', (req, res) => {
+  const stats = {};
+  
+  // Get user counts by role
+  db.get('SELECT COUNT(*) as total FROM users', [], (err, result) => {
+    if (err) return res.status(500).json({ error: 'Failed to get user stats' });
+    stats.totalUsers = result.total;
+    
+    db.get('SELECT COUNT(*) as count FROM users WHERE role = "admin"', [], (err, result) => {
+      if (err) return res.status(500).json({ error: 'Failed to get admin stats' });
+      stats.adminUsers = result.count;
+      
+      db.get('SELECT COUNT(*) as count FROM users WHERE role = "super_admin"', [], (err, result) => {
+        if (err) return res.status(500).json({ error: 'Failed to get super admin stats' });
+        stats.superAdminUsers = result.count;
+        
+        // Get content stats
+        db.get('SELECT COUNT(*) as count FROM events WHERE approved = 1', [], (err, result) => {
+          if (err) return res.status(500).json({ error: 'Failed to get event stats' });
+          stats.totalEvents = result.count;
+          
+          db.get('SELECT COUNT(*) as count FROM skate_spots WHERE approved = 1', [], (err, result) => {
+            if (err) return res.status(500).json({ error: 'Failed to get skate spot stats' });
+            stats.totalSkateSpots = result.count;
+            
+            db.get('SELECT COUNT(*) as count FROM gallery_photos WHERE is_public = 1', [], (err, result) => {
+              if (err) return res.status(500).json({ error: 'Failed to get photo stats' });
+              stats.totalPhotos = result.count;
+              
+              db.get('SELECT COUNT(*) as count FROM messages', [], (err, result) => {
+                if (err) return res.status(500).json({ error: 'Failed to get message stats' });
+                stats.totalMessages = result.count;
+                
+                res.json({ stats });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
 // Get system statistics (super admin only)
 app.get('/api/admin/stats', requireAuth, requireSuperAdmin, (req, res) => {
   const stats = {};
