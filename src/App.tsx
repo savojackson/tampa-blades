@@ -1,13 +1,24 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation, useMatch, useNavigate } from 'react-router-dom';
-import { Container, Navbar, Nav, Tabs, Tab, Form, Button, ListGroup, Row, Col, Carousel, Dropdown, Modal, Table, Badge } from 'react-bootstrap';
-import logo from './logo.svg';
-import './App.css';
-import { MapContainer, TileLayer, Polyline, useMapEvents, Marker, Popup, CircleMarker } from 'react-leaflet';
-import L from 'leaflet';
-import EmojiPicker from 'emoji-picker-react';
-import { GiphyFetch } from '@giphy/js-fetch-api';
-import { Grid as GiphyGrid } from '@giphy/react-components';
+import './App.css'
+
+import EmojiPicker from 'emoji-picker-react'
+import L from 'leaflet'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import {
+    Badge, Button, Carousel, Col, Container, Dropdown, Form, ListGroup, Modal, Nav, Navbar, Row,
+    Tab, Table, Tabs
+} from 'react-bootstrap'
+import {
+    CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMapEvents
+} from 'react-leaflet'
+import {
+    BrowserRouter as Router, Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate
+} from 'react-router-dom'
+
+import { GiphyFetch } from '@giphy/js-fetch-api'
+import { Grid as GiphyGrid } from '@giphy/react-components'
+
+import { API_ENDPOINTS, apiRequest, buildApiUrl, buildMediaUrl } from './config/api'
+import logo from './logo.svg'
 
 const Landing = () => {
   const { user } = useAuth();
@@ -21,16 +32,16 @@ const Landing = () => {
       try {
         const response = await fetch('http://localhost:4000/api/events');
         const data = await response.json();
-        
+
         // Filter for upcoming events (next 30 days)
         const now = new Date();
         const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-        
+
         const upcoming = data.events?.filter((event: any) => {
           const eventDate = new Date(event.date);
           return eventDate >= now && eventDate <= thirtyDaysFromNow;
         }).slice(0, 3) || [];
-        
+
         setUpcomingEvents(upcoming);
       } catch (error) {
         console.error('Failed to fetch upcoming events:', error);
@@ -127,7 +138,7 @@ const Landing = () => {
               Welcome to <span className="text-primary">Skate Community</span>
             </h1>
             <p className="lead mb-4">
-              The premier roller skating community. Connect with fellow skaters, 
+              The premier roller skating community. Connect with fellow skaters,
               discover amazing events, and share your passion for skating.
             </p>
             {!user && (
@@ -145,8 +156,8 @@ const Landing = () => {
           </div>
           <div className="col-lg-6">
             <div className="welcome-image">
-              <img 
-                src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=600&q=80" 
+              <img
+                src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=600&q=80"
                 alt="Roller Skating Community"
                 className="img-fluid rounded-3 shadow"
               />
@@ -191,9 +202,9 @@ const Landing = () => {
                         Login Required
                       </Button>
                     ) : (
-                      <Button 
-                        variant={`outline-${action.color}`} 
-                        size="sm" 
+                      <Button
+                        variant={`outline-${action.color}`}
+                        size="sm"
                         onClick={() => navigate(action.link)}
                       >
                         Explore
@@ -234,9 +245,9 @@ const Landing = () => {
               <div key={event.id} className="col-lg-4 col-md-6 mb-4">
                 <div className="event-card">
                   <div className="card h-100 border-0 shadow-sm">
-                    <img 
-                      src={event.eventPhoto ? `http://localhost:4000${event.eventPhoto}` : event.image} 
-                      className="card-img-top" 
+                    <img
+                      src={event.eventPhoto ? buildMediaUrl(event.eventPhoto) : event.image}
+                      className="card-img-top"
                       alt={event.title}
                       style={{ height: '200px', objectFit: 'cover' }}
                     />
@@ -298,8 +309,8 @@ const Landing = () => {
                     <h5 className="card-title mb-0">Featured Member</h5>
                   </div>
                   <p className="card-text">
-                    Meet Sarah Johnson, our featured member of the month! Sarah has been skating 
-                    for 8 years and loves teaching beginners. Check out her profile to learn more 
+                    Meet Sarah Johnson, our featured member of the month! Sarah has been skating
+                    for 8 years and loves teaching beginners. Check out her profile to learn more
                     about her skating journey.
                   </p>
                   <Button variant="outline-primary" size="sm" onClick={() => navigate('/profiles')}>
@@ -320,8 +331,8 @@ const Landing = () => {
                     <h5 className="card-title mb-0">Recent Achievement</h5>
                   </div>
                   <p className="card-text">
-                    Congratulations to our community for reaching 500+ active members! 
-                    This milestone represents the growing passion for roller skating worldwide. 
+                    Congratulations to our community for reaching 500+ active members!
+                    This milestone represents the growing passion for roller skating worldwide.
                     Here's to many more years of skating together!
                   </p>
                   <Button variant="outline-success" size="sm" onClick={() => navigate('/profiles')}>
@@ -396,24 +407,24 @@ const Gallery = () => {
         page: page.toString(),
         limit: '20'
       });
-      
+
       if (selectedCategory !== 'all') {
         params.append('category', selectedCategory);
       }
-      
+
       if (searchTerm) {
         params.append('search', searchTerm);
       }
 
-      const response = await fetch(`http://localhost:4000/api/gallery/photos?${params}`);
+      const response = await fetch(`${API_ENDPOINTS.GALLERY_PHOTOS}?${params}`);
       const data = await response.json();
-      
+
       if (reset) {
         setPhotos(data.photos || []);
       } else {
         setPhotos(prev => [...prev, ...(data.photos || [])]);
       }
-      
+
       setHasMore(data.pagination?.hasMore || false);
       setCurrentPage(page);
     } catch (error) {
@@ -436,7 +447,7 @@ const Gallery = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:4000/api/gallery/photos', {
@@ -480,14 +491,14 @@ const Gallery = () => {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         // Update the photo in both arrays
-        const updatePhoto = (photo: any) => 
-          photo.id === photoId 
+        const updatePhoto = (photo: any) =>
+          photo.id === photoId
             ? { ...photo, like_count: photo.like_count + (photo.liked ? -1 : 1), liked: !photo.liked }
             : photo;
-        
+
         setPhotos(prev => prev.map(updatePhoto));
         setMyPhotos(prev => prev.map(updatePhoto));
       }
@@ -498,14 +509,14 @@ const Gallery = () => {
 
   const handleDeletePhoto = async (photoId: number) => {
     if (!window.confirm('Are you sure you want to delete this photo?')) return;
-    
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:4000/api/gallery/photos/${photoId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         setPhotos(prev => prev.filter(photo => photo.id !== photoId));
         setMyPhotos(prev => prev.filter(photo => photo.id !== photoId));
@@ -683,7 +694,7 @@ const Gallery = () => {
                 type="url"
                 placeholder="Enter photo URL (e.g., from Unsplash, Imgur, etc.)"
                 value={uploadForm.photoUrl}
-                onChange={(e) => setUploadForm({...uploadForm, photoUrl: e.target.value})}
+                onChange={(e) => setUploadForm({ ...uploadForm, photoUrl: e.target.value })}
                 required
               />
             </Form.Group>
@@ -694,7 +705,7 @@ const Gallery = () => {
                 rows={3}
                 placeholder="Describe your photo..."
                 value={uploadForm.caption}
-                onChange={(e) => setUploadForm({...uploadForm, caption: e.target.value})}
+                onChange={(e) => setUploadForm({ ...uploadForm, caption: e.target.value })}
               />
             </Form.Group>
             <Row>
@@ -703,7 +714,7 @@ const Gallery = () => {
                   <Form.Label>Category</Form.Label>
                   <Form.Select
                     value={uploadForm.category}
-                    onChange={(e) => setUploadForm({...uploadForm, category: e.target.value})}
+                    onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
                   >
                     {categories.slice(1).map(cat => (
                       <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -718,7 +729,7 @@ const Gallery = () => {
                     type="text"
                     placeholder="Where was this taken?"
                     value={uploadForm.location}
-                    onChange={(e) => setUploadForm({...uploadForm, location: e.target.value})}
+                    onChange={(e) => setUploadForm({ ...uploadForm, location: e.target.value })}
                   />
                 </Form.Group>
               </Col>
@@ -729,14 +740,14 @@ const Gallery = () => {
                 type="text"
                 placeholder="inline skating, tricks, fun, etc."
                 value={uploadForm.tags}
-                onChange={(e) => setUploadForm({...uploadForm, tags: e.target.value})}
+                onChange={(e) => setUploadForm({ ...uploadForm, tags: e.target.value })}
               />
             </Form.Group>
             <Form.Check
               type="checkbox"
               label="Make this photo public"
               checked={uploadForm.isPublic}
-              onChange={(e) => setUploadForm({...uploadForm, isPublic: e.target.checked})}
+              onChange={(e) => setUploadForm({ ...uploadForm, isPublic: e.target.checked })}
             />
           </Modal.Body>
           <Modal.Footer>
@@ -798,11 +809,11 @@ const Gallery = () => {
 };
 const Admin = () => {
   const { role } = useAuth();
-  
+
   if (role === 'super_admin') {
     return <SuperAdmin />;
   }
-  
+
   return (
     <div>
       <h2>Admin Dashboard</h2>
@@ -842,11 +853,11 @@ const SuperAdmin = () => {
         page: currentPage.toString(),
         limit: '20'
       });
-      
+
       if (searchTerm) {
         params.append('search', searchTerm);
       }
-      
+
       if (selectedRole !== 'all') {
         params.append('role', selectedRole);
       }
@@ -854,7 +865,7 @@ const SuperAdmin = () => {
       const response = await fetch(`http://localhost:4000/api/admin/users?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
@@ -870,7 +881,7 @@ const SuperAdmin = () => {
       const response = await fetch('http://localhost:4000/api/admin/stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setStats(data.stats || {});
@@ -886,7 +897,7 @@ const SuperAdmin = () => {
       const response = await fetch('http://localhost:4000/api/admin/logs', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setLogs(data.logs || []);
@@ -898,7 +909,7 @@ const SuperAdmin = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:4000/api/admin/users', {
@@ -958,7 +969,7 @@ const SuperAdmin = () => {
     if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:4000/api/admin/users/${userId}`, {
@@ -1122,7 +1133,7 @@ const SuperAdmin = () => {
                       <td>
                         <Badge bg={
                           user.role === 'super_admin' ? 'danger' :
-                          user.role === 'admin' ? 'warning' : 'secondary'
+                            user.role === 'admin' ? 'warning' : 'secondary'
                         }>
                           {user.role}
                         </Badge>
@@ -1204,7 +1215,7 @@ const SuperAdmin = () => {
               <Form.Control
                 type="text"
                 value={createUserForm.username}
-                onChange={(e) => setCreateUserForm({...createUserForm, username: e.target.value})}
+                onChange={(e) => setCreateUserForm({ ...createUserForm, username: e.target.value })}
                 required
               />
             </Form.Group>
@@ -1213,7 +1224,7 @@ const SuperAdmin = () => {
               <Form.Control
                 type="email"
                 value={createUserForm.email}
-                onChange={(e) => setCreateUserForm({...createUserForm, email: e.target.value})}
+                onChange={(e) => setCreateUserForm({ ...createUserForm, email: e.target.value })}
                 required
               />
             </Form.Group>
@@ -1222,7 +1233,7 @@ const SuperAdmin = () => {
               <Form.Control
                 type="password"
                 value={createUserForm.password}
-                onChange={(e) => setCreateUserForm({...createUserForm, password: e.target.value})}
+                onChange={(e) => setCreateUserForm({ ...createUserForm, password: e.target.value })}
                 required
               />
             </Form.Group>
@@ -1230,7 +1241,7 @@ const SuperAdmin = () => {
               <Form.Label>Role</Form.Label>
               <Form.Select
                 value={createUserForm.role}
-                onChange={(e) => setCreateUserForm({...createUserForm, role: e.target.value})}
+                onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
@@ -1315,14 +1326,14 @@ const Profile = () => {
   return (
     <div>
       <h2 className="mb-4">My Profile</h2>
-      
+
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k || 'profile')} className="mb-4">
         <Tab eventKey="profile" title="Profile Information">
           <div className="card">
             <div className="card-header d-flex justify-content-between align-items-center">
               <h5 className="mb-0">Personal Information</h5>
-              <Button 
-                variant={isEditing ? "success" : "primary"} 
+              <Button
+                variant={isEditing ? "success" : "primary"}
                 size="sm"
                 onClick={() => isEditing ? handleProfileSave() : setIsEditing(true)}
               >
@@ -1332,7 +1343,7 @@ const Profile = () => {
             <div className="card-body">
               <div className="row">
                 <div className="col-md-3 text-center mb-4">
-                  <div 
+                  <div
                     style={{
                       width: '120px',
                       height: '120px',
@@ -1359,19 +1370,19 @@ const Profile = () => {
                   <div className="row">
                     <div className="col-md-6 mb-3">
                       <Form.Label>First Name</Form.Label>
-                      <Form.Control 
-                        type="text" 
+                      <Form.Control
+                        type="text"
                         value={profileData.firstName}
-                        onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
                         disabled={!isEditing}
                       />
                     </div>
                     <div className="col-md-6 mb-3">
                       <Form.Label>Last Name</Form.Label>
-                      <Form.Control 
-                        type="text" 
+                      <Form.Control
+                        type="text"
                         value={profileData.lastName}
-                        onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
                         disabled={!isEditing}
                       />
                     </div>
@@ -1379,92 +1390,92 @@ const Profile = () => {
                   <div className="row">
                     <div className="col-md-6 mb-3">
                       <Form.Label>Email</Form.Label>
-                      <Form.Control 
-                        type="email" 
+                      <Form.Control
+                        type="email"
                         value={profileData.email}
-                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                         disabled={!isEditing}
                       />
                     </div>
                     <div className="col-md-6 mb-3">
                       <Form.Label>Phone</Form.Label>
-                      <Form.Control 
-                        type="tel" 
+                      <Form.Control
+                        type="tel"
                         value={profileData.phone}
-                        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                         disabled={!isEditing}
                       />
                     </div>
                   </div>
                   <div className="mb-3">
                     <Form.Label>Location</Form.Label>
-                    <Form.Control 
-                      type="text" 
+                    <Form.Control
+                      type="text"
                       placeholder="City, State"
                       value={profileData.location}
-                      onChange={(e) => setProfileData({...profileData, location: e.target.value})}
+                      onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
                       disabled={!isEditing}
                     />
                   </div>
                   <div className="mb-3">
                     <Form.Label>Website</Form.Label>
-                    <Form.Control 
-                      type="url" 
+                    <Form.Control
+                      type="url"
                       placeholder="https://yourwebsite.com"
                       value={profileData.website}
-                      onChange={(e) => setProfileData({...profileData, website: e.target.value})}
+                      onChange={(e) => setProfileData({ ...profileData, website: e.target.value })}
                       disabled={!isEditing}
                     />
                   </div>
                   <div className="mb-3">
                     <Form.Label>Bio</Form.Label>
-                    <Form.Control 
-                      as="textarea" 
+                    <Form.Control
+                      as="textarea"
                       rows={3}
                       placeholder="Tell us about yourself..."
                       value={profileData.bio}
-                      onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                      onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                       disabled={!isEditing}
                     />
                   </div>
-                  
+
                   <h6 className="mt-4 mb-3">Social Media</h6>
                   <div className="row">
                     <div className="col-md-4 mb-3">
                       <Form.Label><i className="bi bi-instagram"></i> Instagram</Form.Label>
-                      <Form.Control 
-                        type="text" 
+                      <Form.Control
+                        type="text"
                         placeholder="@username"
                         value={profileData.socialMedia.instagram}
                         onChange={(e) => setProfileData({
-                          ...profileData, 
-                          socialMedia: {...profileData.socialMedia, instagram: e.target.value}
+                          ...profileData,
+                          socialMedia: { ...profileData.socialMedia, instagram: e.target.value }
                         })}
                         disabled={!isEditing}
                       />
                     </div>
                     <div className="col-md-4 mb-3">
                       <Form.Label><i className="bi bi-twitter"></i> Twitter</Form.Label>
-                      <Form.Control 
-                        type="text" 
+                      <Form.Control
+                        type="text"
                         placeholder="@username"
                         value={profileData.socialMedia.twitter}
                         onChange={(e) => setProfileData({
-                          ...profileData, 
-                          socialMedia: {...profileData.socialMedia, twitter: e.target.value}
+                          ...profileData,
+                          socialMedia: { ...profileData.socialMedia, twitter: e.target.value }
                         })}
                         disabled={!isEditing}
                       />
                     </div>
                     <div className="col-md-4 mb-3">
                       <Form.Label><i className="bi bi-facebook"></i> Facebook</Form.Label>
-                      <Form.Control 
-                        type="text" 
+                      <Form.Control
+                        type="text"
                         placeholder="facebook.com/username"
                         value={profileData.socialMedia.facebook}
                         onChange={(e) => setProfileData({
-                          ...profileData, 
-                          socialMedia: {...profileData.socialMedia, facebook: e.target.value}
+                          ...profileData,
+                          socialMedia: { ...profileData.socialMedia, facebook: e.target.value }
                         })}
                         disabled={!isEditing}
                       />
@@ -1486,26 +1497,26 @@ const Profile = () => {
                 <div className="col-md-6">
                   <Form.Group className="mb-3">
                     <Form.Label>Current Password</Form.Label>
-                    <Form.Control 
-                      type="password" 
+                    <Form.Control
+                      type="password"
                       value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                     />
                   </Form.Group>
                   <Form.Group className="mb-3">
                     <Form.Label>New Password</Form.Label>
-                    <Form.Control 
-                      type="password" 
+                    <Form.Control
+                      type="password"
                       value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                     />
                   </Form.Group>
                   <Form.Group className="mb-3">
                     <Form.Label>Confirm New Password</Form.Label>
-                    <Form.Control 
-                      type="password" 
+                    <Form.Control
+                      type="password"
                       value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                     />
                   </Form.Group>
                   <Button variant="primary" onClick={handlePasswordChange}>
@@ -1539,44 +1550,44 @@ const Profile = () => {
               <div className="row">
                 <div className="col-md-6">
                   <h6>Email Notifications</h6>
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="email-notifications"
                     label="Email notifications"
                     checked={notifications.emailNotifications}
-                    onChange={(e) => setNotifications({...notifications, emailNotifications: e.target.checked})}
+                    onChange={(e) => setNotifications({ ...notifications, emailNotifications: e.target.checked })}
                   />
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="event-reminders"
                     label="Event reminders"
                     checked={notifications.eventReminders}
-                    onChange={(e) => setNotifications({...notifications, eventReminders: e.target.checked})}
+                    onChange={(e) => setNotifications({ ...notifications, eventReminders: e.target.checked })}
                   />
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="new-messages"
                     label="New messages"
                     checked={notifications.newMessages}
-                    onChange={(e) => setNotifications({...notifications, newMessages: e.target.checked})}
+                    onChange={(e) => setNotifications({ ...notifications, newMessages: e.target.checked })}
                   />
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="marketing-emails"
                     label="Marketing emails"
                     checked={notifications.marketingEmails}
-                    onChange={(e) => setNotifications({...notifications, marketingEmails: e.target.checked})}
+                    onChange={(e) => setNotifications({ ...notifications, marketingEmails: e.target.checked })}
                   />
                 </div>
                 <div className="col-md-6">
                   <h6>Push Notifications</h6>
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="push-notifications"
                     label="Enable push notifications"
                     defaultChecked
                   />
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="sound-notifications"
                     label="Sound notifications"
@@ -1598,42 +1609,42 @@ const Profile = () => {
                 <div className="col-md-6">
                   <Form.Group className="mb-3">
                     <Form.Label>Profile Visibility</Form.Label>
-                    <Form.Select 
+                    <Form.Select
                       value={privacy.profileVisibility}
-                      onChange={(e) => setPrivacy({...privacy, profileVisibility: e.target.value})}
+                      onChange={(e) => setPrivacy({ ...privacy, profileVisibility: e.target.value })}
                     >
                       <option value="public">Public</option>
                       <option value="friends">Friends Only</option>
                       <option value="private">Private</option>
                     </Form.Select>
                   </Form.Group>
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="show-email"
                     label="Show email to other users"
                     checked={privacy.showEmail}
-                    onChange={(e) => setPrivacy({...privacy, showEmail: e.target.checked})}
+                    onChange={(e) => setPrivacy({ ...privacy, showEmail: e.target.checked })}
                   />
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="show-phone"
                     label="Show phone to other users"
                     checked={privacy.showPhone}
-                    onChange={(e) => setPrivacy({...privacy, showPhone: e.target.checked})}
+                    onChange={(e) => setPrivacy({ ...privacy, showPhone: e.target.checked })}
                   />
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="allow-messages"
                     label="Allow messages from other users"
                     checked={privacy.allowMessages}
-                    onChange={(e) => setPrivacy({...privacy, allowMessages: e.target.checked})}
+                    onChange={(e) => setPrivacy({ ...privacy, allowMessages: e.target.checked })}
                   />
-                  <Form.Check 
+                  <Form.Check
                     type="switch"
                     id="show-online-status"
                     label="Show my online status to other users"
                     checked={privacy.showOnlineStatus}
-                    onChange={(e) => setPrivacy({...privacy, showOnlineStatus: e.target.checked})}
+                    onChange={(e) => setPrivacy({ ...privacy, showOnlineStatus: e.target.checked })}
                   />
                 </div>
                 <div className="col-md-6">
@@ -1696,7 +1707,7 @@ const Settings = ({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: (
   return (
     <div className="settings-container">
       <h2><i className="bi bi-gear me-2"></i>Settings</h2>
-      
+
       <div className="row">
         <div className="col-md-6">
           <div className="card">
@@ -1725,7 +1736,7 @@ const Settings = ({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: (
             </div>
           </div>
         </div>
-        
+
         <div className="col-md-6">
           <div className="card">
             <div className="card-header">
@@ -1760,7 +1771,7 @@ const Settings = ({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: (
           </div>
         </div>
       </div>
-      
+
       <div className="row mt-4">
         <div className="col-md-6">
           <div className="card">
@@ -1795,7 +1806,7 @@ const Settings = ({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: (
             </div>
           </div>
         </div>
-        
+
         <div className="col-md-6">
           <div className="card">
             <div className="card-header">
@@ -1855,17 +1866,17 @@ const Messages = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages);
-        
+
         // Group messages by conversation
         const conversationMap = new Map();
         data.messages.forEach((msg: any) => {
           const otherUser = msg.senderId === currentUser ? msg.receiverName : msg.senderName;
           const otherUserId = msg.senderId === currentUser ? msg.receiverId : msg.senderId;
-          
+
           if (!conversationMap.has(otherUserId)) {
             conversationMap.set(otherUserId, {
               userId: otherUserId,
@@ -1883,7 +1894,7 @@ const Messages = () => {
             }
           }
         });
-        
+
         setConversations(Array.from(conversationMap.values()));
       }
     } catch (error) {
@@ -1901,7 +1912,7 @@ const Messages = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setSelectedConversation({
@@ -2000,7 +2011,7 @@ const Messages = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="col-md-8">
           {selectedConversation ? (
             <div className="card">
@@ -2014,11 +2025,10 @@ const Messages = () => {
                     className={`mb-3 ${msg.senderId === currentUser ? 'text-end' : 'text-start'}`}
                   >
                     <div
-                      className={`d-inline-block p-3 rounded ${
-                        msg.senderId === currentUser
-                          ? 'bg-primary text-white'
-                          : 'bg-light text-dark'
-                      }`}
+                      className={`d-inline-block p-3 rounded ${msg.senderId === currentUser
+                        ? 'bg-primary text-white'
+                        : 'bg-light text-dark'
+                        }`}
                       style={{ maxWidth: '70%' }}
                     >
                       <div>{msg.message}</div>
@@ -2215,9 +2225,9 @@ const Chat = () => {
   );
 };
 const demoUsers = [
-  { 
-    id: 1, 
-    name: 'Alice Johnson', 
+  {
+    id: 1,
+    name: 'Alice Johnson',
     username: 'alice_j',
     email: 'alice@example.com',
     bio: 'Passionate roller skater and Tampa Bay local. Love hitting the trails and meeting new people in the skating community! 🛼',
@@ -2226,7 +2236,7 @@ const demoUsers = [
     joinedDate: '2024-01-15',
     lastActive: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
     showOnlineStatus: true,
-    liked: false, 
+    liked: false,
     connected: false,
     socialMedia: {
       instagram: '@alice_skates',
@@ -2236,9 +2246,9 @@ const demoUsers = [
     skills: ['Speed Skating', 'Trail Skating', 'Teaching'],
     eventsAttended: 12
   },
-  { 
-    id: 2, 
-    name: 'Bob Martinez', 
+  {
+    id: 2,
+    name: 'Bob Martinez',
     username: 'bob_m',
     email: 'bob@example.com',
     bio: 'Skateboarder turned roller skater. Always looking for new challenges and cool spots to skate around Tampa! 🛹➡️🛼',
@@ -2247,7 +2257,7 @@ const demoUsers = [
     joinedDate: '2023-11-20',
     lastActive: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
     showOnlineStatus: true,
-    liked: false, 
+    liked: false,
     connected: false,
     socialMedia: {
       instagram: '@bob_skates',
@@ -2257,9 +2267,9 @@ const demoUsers = [
     skills: ['Aggressive Skating', 'Park Skating', 'Tricks'],
     eventsAttended: 8
   },
-  { 
-    id: 3, 
-    name: 'Charlie Chen', 
+  {
+    id: 3,
+    name: 'Charlie Chen',
     username: 'charlie_c',
     email: 'charlie@example.com',
     bio: 'Dance skater and choreographer. Love creating routines and helping others discover the joy of dance skating! 💃🛼',
@@ -2268,7 +2278,7 @@ const demoUsers = [
     joinedDate: '2023-08-10',
     lastActive: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
     showOnlineStatus: true,
-    liked: false, 
+    liked: false,
     connected: false,
     socialMedia: {
       instagram: '@charlie_danceskates',
@@ -2278,9 +2288,9 @@ const demoUsers = [
     skills: ['Dance Skating', 'Choreography', 'Teaching', 'Event Planning'],
     eventsAttended: 25
   },
-  { 
-    id: 4, 
-    name: 'Diana Rodriguez', 
+  {
+    id: 4,
+    name: 'Diana Rodriguez',
     username: 'diana_r',
     email: 'diana@example.com',
     bio: 'Quad skater and vintage enthusiast. Love the classic skating style and collecting retro skating gear! 🎭🛼',
@@ -2289,7 +2299,7 @@ const demoUsers = [
     joinedDate: '2024-02-05',
     lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     showOnlineStatus: false, // This user has disabled online status
-    liked: false, 
+    liked: false,
     connected: false,
     socialMedia: {
       instagram: '@diana_quads',
@@ -2299,9 +2309,9 @@ const demoUsers = [
     skills: ['Quad Skating', 'Vintage Style', 'Photography'],
     eventsAttended: 5
   },
-  { 
-    id: 5, 
-    name: 'Ethan Williams', 
+  {
+    id: 5,
+    name: 'Ethan Williams',
     username: 'ethan_w',
     email: 'ethan@example.com',
     bio: 'Speed skater and fitness enthusiast. Training for competitions and always pushing my limits! 🏃‍♂️🛼',
@@ -2310,7 +2320,7 @@ const demoUsers = [
     joinedDate: '2023-12-01',
     lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
     showOnlineStatus: true,
-    liked: false, 
+    liked: false,
     connected: false,
     socialMedia: {
       instagram: '@ethan_speed',
@@ -2422,7 +2432,7 @@ const Profiles = () => {
   const formatLastActive = (lastActive: Date) => {
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) {
       return 'Just now';
     } else if (diffInMinutes < 60) {
@@ -2445,12 +2455,12 @@ const Profiles = () => {
   const filteredUsers = users
     .filter(user => {
       const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.bio.toLowerCase().includes(searchTerm.toLowerCase());
+        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.bio.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = filterRole === 'all' || user.role === filterRole;
-      const matchesStatus = filterStatus === 'all' || 
-                           (filterStatus === 'online' && user.showOnlineStatus && isOnline(user.lastActive)) ||
-                           (filterStatus === 'offline' && (!user.showOnlineStatus || !isOnline(user.lastActive)));
+      const matchesStatus = filterStatus === 'all' ||
+        (filterStatus === 'online' && user.showOnlineStatus && isOnline(user.lastActive)) ||
+        (filterStatus === 'offline' && (!user.showOnlineStatus || !isOnline(user.lastActive)));
       return matchesSearch && matchesRole && matchesStatus;
     })
     .sort((a, b) => {
@@ -2515,62 +2525,62 @@ const Profiles = () => {
               <div key={user.id} className="member-card card mb-3">
                 <div className="card-body">
                   <div className="row">
-                                         <div className="col-md-2 text-center">
-                       <div className="position-relative">
-                         <div 
-                           className="member-avatar"
-                           style={{
-                             width: '80px',
-                             height: '80px',
-                             borderRadius: '50%',
-                             backgroundColor: user.role === 'admin' ? '#dc3545' : '#007bff',
-                             color: 'white',
-                             display: 'flex',
-                             alignItems: 'center',
-                             justifyContent: 'center',
-                             fontSize: '1.5rem',
-                             fontWeight: 'bold',
-                             margin: '0 auto 0.5rem auto',
-                             cursor: 'pointer'
-                           }}
-                           onClick={() => handleViewProfile(user)}
-                           title="Click to view full profile"
-                         >
-                           {getInitials(user.name)}
-                         </div>
-                         {/* Online Status Indicator */}
-                         {user.showOnlineStatus && isOnline(user.lastActive) && (
-                           <div 
-                             className="online-indicator"
-                             style={{
-                               position: 'absolute',
-                               bottom: '0.5rem',
-                               right: '0.5rem',
-                               width: '16px',
-                               height: '16px',
-                               backgroundColor: '#28a745',
-                               border: '2px solid white',
-                               borderRadius: '50%',
-                               boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                             }}
-                             title="Online now"
-                           ></div>
-                         )}
-                       </div>
-                       <div className="mb-2">
-                         {user.role === 'admin' && (
-                           <span className="badge bg-danger me-1">Admin</span>
-                         )}
-                         {user.showOnlineStatus && (
-                           <span 
-                             className={`badge ${isOnline(user.lastActive) ? 'bg-success' : 'bg-secondary'}`}
-                             title={isOnline(user.lastActive) ? 'Online' : `Last active ${formatLastActive(user.lastActive)}`}
-                           >
-                             {isOnline(user.lastActive) ? 'Online' : 'Offline'}
-                           </span>
-                         )}
-                       </div>
-                     </div>
+                    <div className="col-md-2 text-center">
+                      <div className="position-relative">
+                        <div
+                          className="member-avatar"
+                          style={{
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '50%',
+                            backgroundColor: user.role === 'admin' ? '#dc3545' : '#007bff',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.5rem',
+                            fontWeight: 'bold',
+                            margin: '0 auto 0.5rem auto',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleViewProfile(user)}
+                          title="Click to view full profile"
+                        >
+                          {getInitials(user.name)}
+                        </div>
+                        {/* Online Status Indicator */}
+                        {user.showOnlineStatus && isOnline(user.lastActive) && (
+                          <div
+                            className="online-indicator"
+                            style={{
+                              position: 'absolute',
+                              bottom: '0.5rem',
+                              right: '0.5rem',
+                              width: '16px',
+                              height: '16px',
+                              backgroundColor: '#28a745',
+                              border: '2px solid white',
+                              borderRadius: '50%',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}
+                            title="Online now"
+                          ></div>
+                        )}
+                      </div>
+                      <div className="mb-2">
+                        {user.role === 'admin' && (
+                          <span className="badge bg-danger me-1">Admin</span>
+                        )}
+                        {user.showOnlineStatus && (
+                          <span
+                            className={`badge ${isOnline(user.lastActive) ? 'bg-success' : 'bg-secondary'}`}
+                            title={isOnline(user.lastActive) ? 'Online' : `Last active ${formatLastActive(user.lastActive)}`}
+                          >
+                            {isOnline(user.lastActive) ? 'Online' : 'Offline'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="col-md-7">
                       <div className="d-flex justify-content-between align-items-start">
                         <div>
@@ -2592,16 +2602,16 @@ const Profiles = () => {
                               <span className="badge bg-secondary">+{user.skills.length - 3} more</span>
                             )}
                           </div>
-                                                     <small className="text-muted">
-                             <i className="bi bi-calendar-event"></i> Joined {formatDate(user.joinedDate)} • 
-                             <i className="bi bi-people"></i> {user.eventsAttended} events attended
-                             {user.showOnlineStatus && (
-                               <>
-                                 <br />
-                                 <i className="bi bi-clock"></i> Last active {formatLastActive(user.lastActive)}
-                               </>
-                             )}
-                           </small>
+                          <small className="text-muted">
+                            <i className="bi bi-calendar-event"></i> Joined {formatDate(user.joinedDate)} •
+                            <i className="bi bi-people"></i> {user.eventsAttended} events attended
+                            {user.showOnlineStatus && (
+                              <>
+                                <br />
+                                <i className="bi bi-clock"></i> Last active {formatLastActive(user.lastActive)}
+                              </>
+                            )}
+                          </small>
                         </div>
                       </div>
                     </div>
@@ -2693,7 +2703,7 @@ const Profiles = () => {
                 </div>
                 <div className="card-body">
                   <div className="text-center mb-3">
-                    <div 
+                    <div
                       style={{
                         width: '100px',
                         height: '100px',
@@ -2738,9 +2748,9 @@ const Profiles = () => {
                       )}
                     </div>
                   </div>
-                  <Button 
-                    variant="primary" 
-                    size="sm" 
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => handleMessage(selectedUser)}
                     className="w-100"
                   >
@@ -2786,8 +2796,8 @@ const Profiles = () => {
                   </Form.Group>
                 </div>
                 <div className="modal-footer">
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     onClick={() => {
                       setShowMessageModal(false);
                       setMessageTo(null);
@@ -2803,7 +2813,7 @@ const Profiles = () => {
               </Form>
             </div>
           </div>
-          <div 
+          <div
             className="modal-backdrop fade show"
             onClick={() => {
               setShowMessageModal(false);
@@ -2850,6 +2860,12 @@ const Maps = () => {
   const [currentZoom, setCurrentZoom] = React.useState<number>(mapZoom);
   const [skateSpotsFromAPI, setSkateSpotsFromAPI] = React.useState<any[]>([]);
   const [loadingSpots, setLoadingSpots] = React.useState<boolean>(false);
+  const [loadingApiSpots, setLoadingApiSpots] = React.useState<boolean>(false);
+  const [apiSpots, setApiSpots] = React.useState<any[]>([]);
+  const [spotCache, setSpotCache] = React.useState<Map<string, any[]>>(new Map());
+  const [autoDiscovery, setAutoDiscovery] = React.useState<boolean>(true);
+  const [weatherCache, setWeatherCache] = React.useState<Map<string, any>>(new Map());
+  const [showWeatherFilter, setShowWeatherFilter] = React.useState<boolean>(false);
   const [newSpot, setNewSpot] = React.useState({
     name: '',
     type: 'park',
@@ -2860,81 +2876,648 @@ const Maps = () => {
   });
   const { user } = useAuth();
 
-  // Fetch all skate spots from API once
+  // Skate spots database - Multiple cities (memoized to prevent recreation)
+  const skateSpots = React.useMemo(() => {
+    const spotData: Array<{
+      id: number;
+      name: string;
+      type: string;
+      difficulty: string;
+      coordinates: [number, number];
+      description: string;
+      features: string[];
+      hours: string;
+      rating: number;
+      reviews: number;
+      crowdLevel: string;
+      photos: string[];
+      city: string;
+    }> = [
+        // Tampa Area Spots
+        {
+          id: 1,
+          name: "Tampa Skate Park",
+          type: "park",
+          difficulty: "intermediate",
+          coordinates: [27.9506, -82.4572] as [number, number],
+          description: "Popular skate park with ramps, bowls, and street obstacles",
+          features: ["Lighting", "Water Fountain", "Restrooms", "Parking"],
+          hours: "6 AM - 10 PM",
+          rating: 4.5,
+          reviews: 127,
+          crowdLevel: "medium",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "Tampa"
+        },
+        {
+          id: 2,
+          name: "Bayshore Boulevard",
+          type: "trail",
+          difficulty: "beginner",
+          coordinates: [27.9465, -82.4596] as [number, number],
+          description: "Smooth waterfront trail perfect for cruising and beginners",
+          features: ["Smooth Surface", "Waterfront Views", "Rest Areas", "Parking"],
+          hours: "24/7",
+          rating: 4.8,
+          reviews: 89,
+          crowdLevel: "high",
+          photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
+          city: "Tampa"
+        },
+        {
+          id: 3,
+          name: "Curtis Hixon Waterfront Park",
+          type: "park",
+          difficulty: "beginner",
+          coordinates: [27.9485, -82.4592] as [number, number],
+          description: "Beautiful waterfront park with smooth surfaces for skating",
+          features: ["Waterfront Views", "Smooth Surface", "Rest Areas", "Parking"],
+          hours: "6 AM - 11 PM",
+          rating: 4.3,
+          reviews: 95,
+          crowdLevel: "medium",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "Tampa"
+        },
+        {
+          id: 4,
+          name: "Riverwalk Trail",
+          type: "trail",
+          difficulty: "beginner",
+          coordinates: [27.9475, -82.4585] as [number, number],
+          description: "Scenic urban trail along the Hillsborough River",
+          features: ["River Views", "Smooth Surface", "Restaurants", "Parking"],
+          hours: "24/7",
+          rating: 4.6,
+          reviews: 156,
+          crowdLevel: "medium",
+          photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
+          city: "Tampa"
+        },
+        {
+          id: 5,
+          name: "Ybor City Skate Spot",
+          type: "street",
+          difficulty: "advanced",
+          coordinates: [27.9659, -82.4494] as [number, number],
+          description: "Historic district with great street skating spots",
+          features: ["Historic", "Street Course", "Restaurants", "Parking"],
+          hours: "24/7",
+          rating: 4.2,
+          reviews: 78,
+          crowdLevel: "low",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "Tampa"
+        },
+        // St. Petersburg Area Spots
+        {
+          id: 6,
+          name: "St. Pete Skate Park",
+          type: "park",
+          difficulty: "intermediate",
+          coordinates: [27.7731, -82.6400] as [number, number],
+          description: "Modern skate park with concrete bowls and street features",
+          features: ["Concrete Bowls", "Street Course", "Lighting", "Parking"],
+          hours: "6 AM - 10 PM",
+          rating: 4.7,
+          reviews: 203,
+          crowdLevel: "high",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "St. Petersburg"
+        },
+        {
+          id: 7,
+          name: "Pinellas Trail",
+          type: "trail",
+          difficulty: "beginner",
+          coordinates: [27.7701, -82.6364] as [number, number],
+          description: "Long paved trail perfect for distance skating",
+          features: ["Paved Surface", "Scenic Views", "Rest Areas", "Multiple Access Points"],
+          hours: "24/7",
+          rating: 4.9,
+          reviews: 342,
+          crowdLevel: "medium",
+          photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
+          city: "St. Petersburg"
+        },
+        // Clearwater Area Spots
+        {
+          id: 8,
+          name: "Clearwater Beach Boardwalk",
+          type: "trail",
+          difficulty: "beginner",
+          coordinates: [27.9789, -82.8316] as [number, number],
+          description: "Scenic beachfront boardwalk for casual skating",
+          features: ["Beach Views", "Smooth Surface", "Restaurants", "Parking"],
+          hours: "24/7",
+          rating: 4.4,
+          reviews: 167,
+          crowdLevel: "high",
+          photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
+          city: "Clearwater"
+        },
+        // Orlando Area Spots
+        {
+          id: 9,
+          name: "Orlando Skate Park",
+          type: "park",
+          difficulty: "advanced",
+          coordinates: [28.5383, -81.3792] as [number, number],
+          description: "Professional-grade skate park with multiple skill levels",
+          features: ["Multiple Bowls", "Street Course", "Pro Shop", "Parking"],
+          hours: "6 AM - 10 PM",
+          rating: 4.6,
+          reviews: 189,
+          crowdLevel: "medium",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "Orlando"
+        },
+        // Miami Area Spots
+        {
+          id: 10,
+          name: "Miami Beach Skate Park",
+          type: "park",
+          difficulty: "intermediate",
+          coordinates: [25.7907, -80.1300] as [number, number],
+          description: "Beachfront skate park with ocean views",
+          features: ["Ocean Views", "Concrete Bowls", "Street Course", "Parking"],
+          hours: "6 AM - 10 PM",
+          rating: 4.3,
+          reviews: 145,
+          crowdLevel: "high",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "Miami"
+        },
+        {
+          id: 2,
+          name: "Riverside Trail",
+          type: "trail",
+          difficulty: "beginner",
+          coordinates: [34.0522, -118.2437] as [number, number],
+          description: "Smooth waterfront trail perfect for cruising and beginners",
+          features: ["Smooth Surface", "Waterfront Views", "Rest Areas", "Parking"],
+          hours: "24/7",
+          rating: 4.8,
+          reviews: 89,
+          crowdLevel: "high",
+          photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
+          city: "Los Angeles"
+        },
+        {
+          id: 3,
+          name: "Downtown Bowl",
+          type: "park",
+          difficulty: "advanced",
+          coordinates: [41.8781, -87.6298] as [number, number],
+          description: "Historic skate park with deep bowls and challenging features",
+          features: ["Historic", "Deep Bowls", "Street Course", "Parking"],
+          hours: "6 AM - 10 PM",
+          rating: 4.3,
+          reviews: 95,
+          crowdLevel: "low",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "Chicago"
+        },
+        {
+          id: 4,
+          name: "City Walkway",
+          type: "trail",
+          difficulty: "beginner",
+          coordinates: [29.7604, -95.3698] as [number, number],
+          description: "Scenic urban trail perfect for casual skating",
+          features: ["Urban Views", "Smooth Surface", "Restaurants", "Parking"],
+          hours: "24/7",
+          rating: 4.6,
+          reviews: 156,
+          crowdLevel: "medium",
+          photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
+          city: "Houston"
+        },
+        {
+          id: 5,
+          name: "Community Skate Park",
+          type: "park",
+          difficulty: "beginner",
+          coordinates: [33.7490, -84.3880] as [number, number],
+          description: "Family-friendly skate park with beginner-friendly features",
+          features: ["Beginner Friendly", "Lighting", "Restrooms", "Playground"],
+          hours: "8 AM - 8 PM",
+          rating: 4.2,
+          reviews: 73,
+          crowdLevel: "medium",
+          photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
+          city: "Atlanta"
+        },
+        {
+          id: 6,
+          name: "Nature Trail",
+          type: "trail",
+          difficulty: "intermediate",
+          coordinates: [39.9526, -75.1652] as [number, number],
+          description: "Paved trail through natural areas with scenic views",
+          features: ["Natural Scenery", "Smooth Surface", "Rest Areas", "Parking"],
+          hours: "6 AM - 8 PM",
+          rating: 4.4,
+          reviews: 67,
+          crowdLevel: "low",
+          photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
+          city: "Philadelphia"
+        }
+      ];
+    return spotData;
+  }, []);
+
+  // Fetch database skate spots
   const fetchSkateSpots = async () => {
     setLoadingSpots(true);
     try {
-      // Simulate API call with a delay to show loading
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // For now, use the hardcoded data but transform it to look like API data
-      const mockApiSpots = skateSpots.map((spot, index) => ({
-        id: index + 1,
-        name: spot.name,
-        type: spot.type,
-        difficulty: spot.difficulty,
-        latitude: spot.coordinates[0],
-        longitude: spot.coordinates[1],
-        description: spot.description,
-        features: JSON.stringify(spot.features),
-        hours: spot.hours,
-        rating: spot.rating,
-        reviews: spot.reviews,
-        crowd_level: spot.crowdLevel,
-        photos: JSON.stringify(spot.photos),
-        city: spot.city,
-        approved: 1
-      }));
-      
-      // Transform back to frontend format
-      const transformedSpots = mockApiSpots.map((spot: any) => ({
-        id: spot.id,
-        name: spot.name,
-        type: spot.type,
-        difficulty: spot.difficulty,
-        coordinates: [spot.latitude, spot.longitude] as [number, number],
-        description: spot.description,
-        features: spot.features ? JSON.parse(spot.features) : [],
-        hours: spot.hours,
-        rating: spot.rating,
-        reviews: spot.reviews,
-        crowdLevel: spot.crowd_level,
-        photos: spot.photos ? JSON.parse(spot.photos) : [],
-        city: spot.city || 'Tampa Area'
-      }));
-      
-      console.log('Loaded skate spots:', transformedSpots.length);
-      setSkateSpotsFromAPI(transformedSpots);
-      setVisibleSpots(transformedSpots);
-      
+      const response = await fetch('/api/skate-spots/area', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const spots = await response.json();
+        const transformedSpots = spots.map((spot: any) => ({
+          id: spot.id,
+          name: spot.name,
+          type: spot.type,
+          difficulty: spot.difficulty,
+          coordinates: [spot.latitude, spot.longitude] as [number, number],
+          description: spot.description,
+          features: spot.features ? JSON.parse(spot.features) : [],
+          hours: spot.hours,
+          rating: spot.rating,
+          reviews: spot.reviews,
+          crowdLevel: spot.crowd_level,
+          photos: spot.photos ? JSON.parse(spot.photos) : [],
+          city: spot.city || 'Tampa Area',
+          source: 'database',
+          approved: spot.approved,
+          weather: null,
+          weatherLoading: false
+        }));
+
+        // Fetch weather data for database spots too
+        transformedSpots.forEach(async (spot: any) => {
+          try {
+            const weatherData = await fetchWeatherData(spot.coordinates[0], spot.coordinates[1]);
+
+            // Update spots with weather data
+            setSkateSpotsFromAPI((prevSpots: any[]) =>
+              prevSpots.map((prevSpot: any) =>
+                prevSpot.id === spot.id
+                  ? { ...prevSpot, weather: weatherData }
+                  : prevSpot
+              )
+            );
+          } catch (error) {
+            console.error(`Failed to fetch weather for ${spot.name}:`, error);
+          }
+        });
+
+        console.log('Loaded database spots:', transformedSpots.length);
+        setSkateSpotsFromAPI(transformedSpots);
+        return transformedSpots;
+      } else {
+        throw new Error('Failed to fetch spots');
+      }
     } catch (error) {
       console.error('Failed to load skate spots:', error);
       // Fallback to hardcoded data if anything fails
       console.log('Using fallback hardcoded spots');
-      setSkateSpotsFromAPI(skateSpots);
-      setVisibleSpots(skateSpots);
+      const fallbackSpots = skateSpots.map(spot => ({
+        ...spot,
+        source: 'database',
+        id: Math.random().toString()
+      }));
+      setSkateSpotsFromAPI(fallbackSpots);
+      return fallbackSpots;
     } finally {
       setLoadingSpots(false);
     }
   };
 
-  // Filter spots based on map bounds
-  const filterSpotsInBounds = (bounds: L.LatLngBounds) => {
-    const spotsToFilter = skateSpotsFromAPI.length > 0 ? skateSpotsFromAPI : skateSpots;
-    console.log('Filtering spots. Total spots:', spotsToFilter.length, 'Bounds:', bounds);
-    
-    const filteredSpots = spotsToFilter.filter(spot => {
+  // Generate cache key for API requests
+  const generateCacheKey = React.useCallback((bounds: L.LatLngBounds, searchType: string) => {
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    return `${searchType}_${sw.lat.toFixed(4)}_${sw.lng.toFixed(4)}_${ne.lat.toFixed(4)}_${ne.lng.toFixed(4)}`;
+  }, []);
+
+  // Helper function to extract features from Google Places data
+  const extractFeatures = React.useCallback((place: any) => {
+    const features = [];
+    const types = place.types || [];
+
+    if (place.opening_hours) features.push('Operating Hours');
+    if (place.price_level !== undefined) features.push('Free Entry');
+    if (types.includes('point_of_interest')) features.push('Popular Spot');
+    if (place.photos && place.photos.length > 0) features.push('Photos Available');
+    if (place.rating && place.rating > 4) features.push('Highly Rated');
+
+    return features;
+  }, []);
+
+  // Helper function to extract city from vicinity
+  const extractCity = React.useCallback((vicinity: string) => {
+    if (!vicinity) return 'Unknown';
+    const parts = vicinity.split(',');
+    return parts[parts.length - 1].trim() || 'Unknown';
+  }, []);
+
+  // Fetch weather data for a location
+  const fetchWeatherData = React.useCallback(async (lat: number, lng: number) => {
+    const cacheKey = `${lat.toFixed(3)}_${lng.toFixed(3)}`;
+
+    // Check cache first
+    if (weatherCache.has(cacheKey)) {
+      return weatherCache.get(cacheKey);
+    }
+
+    try {
+      const response = await fetch(`/api/weather/${lat}/${lng}`);
+      if (response.ok) {
+        const data = await response.json();
+
+        // Cache the weather data for 30 minutes
+        setWeatherCache(prev => new Map(prev.set(cacheKey, data.weather)));
+        setTimeout(() => {
+          setWeatherCache(prev => {
+            const newCache = new Map(prev);
+            newCache.delete(cacheKey);
+            return newCache;
+          });
+        }, 30 * 60 * 1000); // 30 minutes
+
+        return data.weather;
+      }
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+    }
+
+    return null;
+  }, [weatherCache]);
+
+  // Discover real skate parks using Google Places API
+  const discoverSkateParks = React.useCallback(async (bounds: L.LatLngBounds, zoom: number) => {
+    if (!autoDiscovery) return [];
+
+    const cacheKey = generateCacheKey(bounds, 'skate_parks');
+
+    // Check cache first
+    if (spotCache.has(cacheKey)) {
+      console.log('Using cached API spots for area');
+      return spotCache.get(cacheKey) || [];
+    }
+
+    setLoadingApiSpots(true);
+    try {
+      const center = bounds.getCenter();
+
+      // Calculate radius based on zoom level (more focused search for higher zoom)
+      const radius = Math.min(50000, Math.max(1000, 50000 / Math.pow(2, zoom - 10)));
+
+      // Search terms based on zoom level and area size
+      const searchTerms = zoom > 13
+        ? ['park', 'skate park', 'skateboard park', 'skate spot']
+        : ['park', 'skate park', 'skateboard park', 'recreational park', 'sports complex'];
+
+      const allDiscoveredSpots: any[] = [];
+
+      // Search for each term
+      for (const term of searchTerms) {
+        try {
+          const response = await fetch(`/api/places/nearby`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              location: { lat: center.lat, lng: center.lng },
+              radius: radius,
+              keyword: term
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+
+            if (data.success && data.results) {
+              const spotsWithCoords = data.results
+                .filter((place: any) =>
+                  place.geometry?.location &&
+                  place.name &&
+                  !allDiscoveredSpots.some(existing => existing.place_id === place.place_id)
+                )
+                .map((place: any) => ({
+                  id: `api_${place.place_id}`,
+                  place_id: place.place_id,
+                  name: place.name,
+                  type: determineSpotType(place),
+                  difficulty: 'unknown',
+                  coordinates: [
+                    place.geometry.location.lat,
+                    place.geometry.location.lng
+                  ] as [number, number],
+                  description: place.vicinity || '',
+                  features: extractFeatures(place),
+                  hours: place.opening_hours ? 'Check Google Maps' : 'Unknown',
+                  rating: place.rating || 0,
+                  reviews: place.user_ratings_total || 0,
+                  crowdLevel: 'unknown',
+                  photos: place.photos ? [place.photos[0].photo_reference] : [],
+                  city: extractCity(place.vicinity),
+                  source: 'api',
+                  business_status: place.business_status,
+                  price_level: place.price_level,
+                  types: place.types || [],
+                  approved: 0, // API spots are not auto-approved
+                  weather: null, // Will be populated later
+                  weatherLoading: false
+                }));
+
+              // Fetch weather data for each spot (but don't block the UI)
+              const transformedSpots = spotsWithCoords.map((spot: any) => ({
+                ...spot,
+                weatherLoading: true
+              }));
+
+              // Fetch weather data in the background
+              spotsWithCoords.forEach(async (spot: any) => {
+                try {
+                  const weatherData = await fetchWeatherData(spot.coordinates[0], spot.coordinates[1]);
+
+                  // Update the spot with weather data
+                  setVisibleSpots((prevSpots: any[]) =>
+                    prevSpots.map((prevSpot: any) =>
+                      prevSpot.id === spot.id
+                        ? { ...prevSpot, weather: weatherData, weatherLoading: false }
+                        : prevSpot
+                    )
+                  );
+
+                  setApiSpots((prevSpots: any[]) =>
+                    prevSpots.map((prevSpot: any) =>
+                      prevSpot.id === spot.id
+                        ? { ...prevSpot, weather: weatherData, weatherLoading: false }
+                        : prevSpot
+                    )
+                  );
+                } catch (error) {
+                  console.error(`Failed to fetch weather for ${spot.name}:`, error);
+                  // Update to remove loading state even on error
+                  setVisibleSpots((prevSpots: any[]) =>
+                    prevSpots.map((prevSpot: any) =>
+                      prevSpot.id === spot.id
+                        ? { ...prevSpot, weatherLoading: false }
+                        : prevSpot
+                    )
+                  );
+                }
+              });
+
+              allDiscoveredSpots.push(...transformedSpots);
+            }
+          }
+        } catch (error) {
+          console.error(`Error searching for ${term}:`, error);
+        }
+      }
+
+      // Cache the results
+      setSpotCache(prev => new Map(prev.set(cacheKey, allDiscoveredSpots)));
+
+      console.log(`Discovered ${allDiscoveredSpots.length} potential skate spots`);
+      return allDiscoveredSpots;
+
+    } catch (error) {
+      console.error('Error discovering skate parks:', error);
+      return [];
+    } finally {
+      setLoadingApiSpots(false);
+    }
+  }, [autoDiscovery, generateCacheKey, spotCache, extractCity, extractFeatures, fetchWeatherData]);
+
+  // Helper function to determine spot type from Google Places data
+  const determineSpotType = (place: any) => {
+    const types = place.types || [];
+    const name = place.name.toLowerCase();
+
+    if (name.includes('skate') && name.includes('park')) return 'park';
+    if (types.includes('park')) return 'park';
+    if (types.includes('tourist_attraction')) return 'street';
+    if (name.includes('trail') || name.includes('path')) return 'trail';
+    if (name.includes('plaza') || name.includes('square')) return 'street';
+
+    return 'park'; // default
+  };
+
+  // Get weather icon with skating recommendation
+  const getWeatherIcon = (weather: any) => {
+    if (!weather) return '❓';
+
+    const iconMap: Record<string, string> = {
+      '01d': '☀️', '01n': '🌙', '02d': '⛅', '02n': '☁️',
+      '03d': '☁️', '03n': '☁️', '04d': '☁️', '04n': '☁️',
+      '09d': '🌧️', '09n': '🌧️', '10d': '🌦️', '10n': '🌧️',
+      '11d': '⛈️', '11n': '⛈️', '13d': '❄️', '13n': '❄️',
+      '50d': '🌫️', '50n': '🌫️'
+    };
+
+    return iconMap[weather.icon] || '🌤️';
+  };
+
+  // Check if weather is good for skating
+  const isGoodSkatingWeather = (weather: any) => {
+    if (!weather) return false;
+    return weather.isSkateable === true;
+  };
+
+  // Save API spot to database
+  const saveApiSpotToDatabase = async (apiSpot: any) => {
+    try {
+      const response = await fetch('/api/skate-spots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          name: apiSpot.name,
+          type: apiSpot.type,
+          difficulty: 'intermediate', // Default for API spots
+          latitude: apiSpot.coordinates[0],
+          longitude: apiSpot.coordinates[1],
+          description: `${apiSpot.description}\n\nDiscovered via Google Places API.`,
+          features: JSON.stringify(apiSpot.features),
+          hours: apiSpot.hours,
+          google_place_id: apiSpot.place_id
+        }),
+      });
+
+      if (response.ok) {
+        alert('Spot saved successfully! It will appear after admin approval.');
+        // Refresh database spots
+        await fetchSkateSpots();
+        return true;
+      } else {
+        alert('Failed to save spot. Please try again.');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error saving API spot:', error);
+      alert('Error saving spot. Please try again.');
+      return false;
+    }
+  };
+
+  // Filter spots based on map bounds and combine with API spots
+  const filterSpotsInBounds = React.useCallback(async (bounds: L.LatLngBounds, zoom: number) => {
+    // Filter database spots
+    const databaseSpots = skateSpotsFromAPI.length > 0 ? skateSpotsFromAPI : skateSpots;
+    console.log('Filtering spots. Total database spots:', databaseSpots.length, 'Bounds:', bounds);
+
+    const filteredDatabaseSpots = databaseSpots.filter(spot => {
       const [lat, lng] = spot.coordinates;
       const isInBounds = bounds.contains([lat, lng]);
       if (isInBounds) {
-        console.log('Spot in bounds:', spot.name, 'at', lat, lng);
+        console.log('Database spot in bounds:', spot.name, 'at', lat, lng);
       }
       return isInBounds;
     });
-    
-    console.log('Filtered spots:', filteredSpots.length);
-    setVisibleSpots(filteredSpots);
-  };
+
+    // Discover API spots for the area (if auto-discovery is enabled)
+    let discoveredSpots: any[] = [];
+    if (autoDiscovery && zoom > 10) { // Only search at reasonable zoom levels
+      discoveredSpots = await discoverSkateParks(bounds, zoom);
+
+      // Filter discovered spots to only those in bounds
+      discoveredSpots = discoveredSpots.filter(spot => {
+        const [lat, lng] = spot.coordinates;
+        return bounds.contains([lat, lng]);
+      });
+    }
+
+    // Combine and deduplicate spots
+    const allSpots = [...filteredDatabaseSpots, ...discoveredSpots];
+
+    // Remove any potential duplicates (same name and close coordinates)
+    const uniqueSpots = allSpots.filter((spot, index, self) => {
+      const firstIndex = self.findIndex(s =>
+        s.name.toLowerCase() === spot.name.toLowerCase() &&
+        Math.abs(s.coordinates[0] - spot.coordinates[0]) < 0.001 &&
+        Math.abs(s.coordinates[1] - spot.coordinates[1]) < 0.001
+      );
+      return firstIndex === index;
+    });
+
+    console.log(`Total visible spots: ${uniqueSpots.length} (${filteredDatabaseSpots.length} database + ${discoveredSpots.length} discovered)`);
+    setVisibleSpots(uniqueSpots);
+    setApiSpots(discoveredSpots);
+  }, [skateSpotsFromAPI, skateSpots, autoDiscovery, discoverSkateParks]);
 
   // Submit new skate spot
   const submitNewSpot = async (spotData: {
@@ -2956,7 +3539,7 @@ const Maps = () => {
         },
         body: JSON.stringify(spotData)
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         console.log('Spot submitted successfully:', result);
@@ -2975,9 +3558,24 @@ const Maps = () => {
 
   // Auto-get user location and fetch skate spots on component mount
   React.useEffect(() => {
-    getUserLocation();
-    fetchSkateSpots();
-    
+    const initializeMap = async () => {
+      getUserLocation();
+      const dbSpots = await fetchSkateSpots();
+
+      // Initial spot discovery for the default map area
+      if (autoDiscovery) {
+        const initialBounds = L.latLngBounds(
+          [27.9000, -82.5000], // Southwest
+          [28.0000, -82.4000]  // Northeast (Tampa area)
+        );
+        await filterSpotsInBounds(initialBounds, mapZoom);
+      } else {
+        setVisibleSpots(dbSpots);
+      }
+    };
+
+    initializeMap();
+
     // Cleanup timeouts on unmount
     return () => {
       if (autocompleteTimeout) {
@@ -2987,17 +3585,24 @@ const Maps = () => {
         clearTimeout(mapBoundsTimeout);
       }
     };
-  }, [autocompleteTimeout]);
+  }, []); // Empty dependency array - only run on mount
+
+  // Update spots when auto-discovery setting changes
+  React.useEffect(() => {
+    if (mapBounds) {
+      filterSpotsInBounds(mapBounds, currentZoom);
+    }
+  }, [autoDiscovery, mapBounds, currentZoom, filterSpotsInBounds]);
 
   // Update visible spots when skate spots data changes
   React.useEffect(() => {
     console.log('useEffect triggered. API spots:', skateSpotsFromAPI.length, 'Map bounds:', mapBounds);
-    
+
     if (skateSpotsFromAPI.length > 0) {
       // If we have map bounds, filter spots; otherwise show all
       if (mapBounds) {
         console.log('Filtering spots with bounds');
-        filterSpotsInBounds(mapBounds);
+        filterSpotsInBounds(mapBounds, currentZoom);
       } else {
         console.log('No bounds, showing all API spots');
         setVisibleSpots(skateSpotsFromAPI);
@@ -3007,260 +3612,27 @@ const Maps = () => {
       console.log('No API spots, using hardcoded spots');
       setVisibleSpots(skateSpots);
     }
-  }, [skateSpotsFromAPI, mapBounds]);
+  }, [skateSpotsFromAPI, mapBounds, currentZoom, filterSpotsInBounds, skateSpots]);
 
-  // Skate spots database - Multiple cities
-  const skateSpots: Array<{
-    id: number;
-    name: string;
-    type: string;
-    difficulty: string;
-    coordinates: [number, number];
-    description: string;
-    features: string[];
-    hours: string;
-    rating: number;
-    reviews: number;
-    crowdLevel: string;
-    photos: string[];
-    city: string;
-  }> = [
-    // Tampa Area Spots
-    {
-      id: 1,
-      name: "Tampa Skate Park",
-      type: "park",
-      difficulty: "intermediate",
-      coordinates: [27.9506, -82.4572] as [number, number],
-      description: "Popular skate park with ramps, bowls, and street obstacles",
-      features: ["Lighting", "Water Fountain", "Restrooms", "Parking"],
-      hours: "6 AM - 10 PM",
-      rating: 4.5,
-      reviews: 127,
-      crowdLevel: "medium",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "Tampa"
-    },
-    {
-      id: 2,
-      name: "Bayshore Boulevard",
-      type: "trail",
-      difficulty: "beginner",
-      coordinates: [27.9465, -82.4596] as [number, number],
-      description: "Smooth waterfront trail perfect for cruising and beginners",
-      features: ["Smooth Surface", "Waterfront Views", "Rest Areas", "Parking"],
-      hours: "24/7",
-      rating: 4.8,
-      reviews: 89,
-      crowdLevel: "high",
-      photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
-      city: "Tampa"
-    },
-    {
-      id: 3,
-      name: "Curtis Hixon Waterfront Park",
-      type: "park",
-      difficulty: "beginner",
-      coordinates: [27.9485, -82.4592] as [number, number],
-      description: "Beautiful waterfront park with smooth surfaces for skating",
-      features: ["Waterfront Views", "Smooth Surface", "Rest Areas", "Parking"],
-      hours: "6 AM - 11 PM",
-      rating: 4.3,
-      reviews: 95,
-      crowdLevel: "medium",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "Tampa"
-    },
-    {
-      id: 4,
-      name: "Riverwalk Trail",
-      type: "trail",
-      difficulty: "beginner",
-      coordinates: [27.9475, -82.4585] as [number, number],
-      description: "Scenic urban trail along the Hillsborough River",
-      features: ["River Views", "Smooth Surface", "Restaurants", "Parking"],
-      hours: "24/7",
-      rating: 4.6,
-      reviews: 156,
-      crowdLevel: "medium",
-      photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
-      city: "Tampa"
-    },
-    {
-      id: 5,
-      name: "Ybor City Skate Spot",
-      type: "street",
-      difficulty: "advanced",
-      coordinates: [27.9659, -82.4494] as [number, number],
-      description: "Historic district with great street skating spots",
-      features: ["Historic", "Street Course", "Restaurants", "Parking"],
-      hours: "24/7",
-      rating: 4.2,
-      reviews: 78,
-      crowdLevel: "low",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "Tampa"
-    },
-    // St. Petersburg Area Spots
-    {
-      id: 6,
-      name: "St. Pete Skate Park",
-      type: "park",
-      difficulty: "intermediate",
-      coordinates: [27.7731, -82.6400] as [number, number],
-      description: "Modern skate park with concrete bowls and street features",
-      features: ["Concrete Bowls", "Street Course", "Lighting", "Parking"],
-      hours: "6 AM - 10 PM",
-      rating: 4.7,
-      reviews: 203,
-      crowdLevel: "high",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "St. Petersburg"
-    },
-    {
-      id: 7,
-      name: "Pinellas Trail",
-      type: "trail",
-      difficulty: "beginner",
-      coordinates: [27.7701, -82.6364] as [number, number],
-      description: "Long paved trail perfect for distance skating",
-      features: ["Paved Surface", "Scenic Views", "Rest Areas", "Multiple Access Points"],
-      hours: "24/7",
-      rating: 4.9,
-      reviews: 342,
-      crowdLevel: "medium",
-      photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
-      city: "St. Petersburg"
-    },
-    // Clearwater Area Spots
-    {
-      id: 8,
-      name: "Clearwater Beach Boardwalk",
-      type: "trail",
-      difficulty: "beginner",
-      coordinates: [27.9789, -82.8316] as [number, number],
-      description: "Scenic beachfront boardwalk for casual skating",
-      features: ["Beach Views", "Smooth Surface", "Restaurants", "Parking"],
-      hours: "24/7",
-      rating: 4.4,
-      reviews: 167,
-      crowdLevel: "high",
-      photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
-      city: "Clearwater"
-    },
-    // Orlando Area Spots
-    {
-      id: 9,
-      name: "Orlando Skate Park",
-      type: "park",
-      difficulty: "advanced",
-      coordinates: [28.5383, -81.3792] as [number, number],
-      description: "Professional-grade skate park with multiple skill levels",
-      features: ["Multiple Bowls", "Street Course", "Pro Shop", "Parking"],
-      hours: "6 AM - 10 PM",
-      rating: 4.6,
-      reviews: 189,
-      crowdLevel: "medium",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "Orlando"
-    },
-    // Miami Area Spots
-    {
-      id: 10,
-      name: "Miami Beach Skate Park",
-      type: "park",
-      difficulty: "intermediate",
-      coordinates: [25.7907, -80.1300] as [number, number],
-      description: "Beachfront skate park with ocean views",
-      features: ["Ocean Views", "Concrete Bowls", "Street Course", "Parking"],
-      hours: "6 AM - 10 PM",
-      rating: 4.3,
-      reviews: 145,
-      crowdLevel: "high",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "Miami"
-    },
-    {
-      id: 2,
-      name: "Riverside Trail",
-      type: "trail",
-      difficulty: "beginner",
-      coordinates: [34.0522, -118.2437] as [number, number],
-      description: "Smooth waterfront trail perfect for cruising and beginners",
-      features: ["Smooth Surface", "Waterfront Views", "Rest Areas", "Parking"],
-      hours: "24/7",
-      rating: 4.8,
-      reviews: 89,
-      crowdLevel: "high",
-      photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
-      city: "Los Angeles"
-    },
-    {
-      id: 3,
-      name: "Downtown Bowl",
-      type: "park",
-      difficulty: "advanced",
-      coordinates: [41.8781, -87.6298] as [number, number],
-      description: "Historic skate park with deep bowls and challenging features",
-      features: ["Historic", "Deep Bowls", "Street Course", "Parking"],
-      hours: "6 AM - 10 PM",
-      rating: 4.3,
-      reviews: 95,
-      crowdLevel: "low",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "Chicago"
-    },
-    {
-      id: 4,
-      name: "City Walkway",
-      type: "trail",
-      difficulty: "beginner",
-      coordinates: [29.7604, -95.3698] as [number, number],
-      description: "Scenic urban trail perfect for casual skating",
-      features: ["Urban Views", "Smooth Surface", "Restaurants", "Parking"],
-      hours: "24/7",
-      rating: 4.6,
-      reviews: 156,
-      crowdLevel: "medium",
-      photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
-      city: "Houston"
-    },
-    {
-      id: 5,
-      name: "Community Skate Park",
-      type: "park",
-      difficulty: "beginner",
-      coordinates: [33.7490, -84.3880] as [number, number],
-      description: "Family-friendly skate park with beginner-friendly features",
-      features: ["Beginner Friendly", "Lighting", "Restrooms", "Playground"],
-      hours: "8 AM - 8 PM",
-      rating: 4.2,
-      reviews: 73,
-      crowdLevel: "medium",
-      photos: ["https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80"],
-      city: "Atlanta"
-    },
-    {
-      id: 6,
-      name: "Nature Trail",
-      type: "trail",
-      difficulty: "intermediate",
-      coordinates: [39.9526, -75.1652] as [number, number],
-      description: "Paved trail through natural areas with scenic views",
-      features: ["Natural Scenery", "Smooth Surface", "Rest Areas", "Parking"],
-      hours: "6 AM - 8 PM",
-      rating: 4.4,
-      reviews: 67,
-      crowdLevel: "low",
-      photos: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=400&q=80"],
-      city: "Philadelphia"
+  // Filter spots based on selection, weather, and map bounds
+  const filteredSpots = React.useMemo(() => {
+    let spots = visibleSpots;
+
+    // Filter by type
+    if (selectedFilter !== 'all') {
+      spots = spots.filter(spot => spot.type === selectedFilter);
     }
-  ];
 
-  // Filter spots based on selection and map bounds
-  const filteredSpots = selectedFilter === 'all' 
-    ? visibleSpots 
-    : visibleSpots.filter(spot => spot.type === selectedFilter);
+    // Filter by weather if enabled
+    if (showWeatherFilter) {
+      spots = spots.filter(spot => {
+        if (!spot.weather) return false; // Hide spots without weather data
+        return isGoodSkatingWeather(spot.weather);
+      });
+    }
+
+    return spots;
+  }, [visibleSpots, selectedFilter, showWeatherFilter]);
 
   // Get user location and center map
   const getUserLocation = () => {
@@ -3287,7 +3659,7 @@ const Maps = () => {
   // Search for city and center map
   const searchForCity = async () => {
     if (!searchCity.trim()) return;
-    
+
     try {
       // Simple city coordinates mapping (in a real app, you'd use a geocoding API)
       const cityCoordinates: { [key: string]: [number, number] } = {
@@ -3324,10 +3696,10 @@ const Maps = () => {
         'phoenix': [33.4484, -112.0740],
         'las vegas': [36.1699, -115.1398]
       };
-      
+
       const cityKey = searchCity.toLowerCase();
       const coordinates = cityCoordinates[cityKey];
-      
+
       if (coordinates) {
         setMapCenter(coordinates);
         setMapZoom(10);
@@ -3346,34 +3718,34 @@ const Maps = () => {
   // Search for address and center map
   const searchForAddress = async () => {
     if (!searchAddress.trim()) return;
-    
+
     setIsSearching(true);
-    
+
     try {
       // Using OpenStreetMap Nominatim API for geocoding (free and no API key required)
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchAddress)}&limit=1`
       );
-      
+
       if (!response.ok) {
         throw new Error('Geocoding service unavailable');
       }
-      
+
       const data = await response.json();
-      
+
       if (data && data.length > 0) {
         const { lat, lon } = data[0];
         const coordinates: [number, number] = [parseFloat(lat), parseFloat(lon)];
-        
+
         setMapCenter(coordinates);
         setMapZoom(14); // Closer zoom for specific addresses
         setSearchedLocation(coordinates);
         setShowAddressSearch(false);
         setSearchAddress('');
-        
+
         // Find nearby spots
         const nearbySpots = findNearbySpots(coordinates[0], coordinates[1], 50);
-        
+
         // Show success message with the found location and nearby spots
         const displayName = data[0].display_name.split(',')[0]; // Get first part of address
         if (nearbySpots.length > 0) {
@@ -3395,30 +3767,30 @@ const Maps = () => {
   // Google Maps location search with enhanced features
   const handleLocationSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setIsSearching(true);
     setSearchError('');
     setSearchResults([]);
     setShowAutocomplete(false);
-    
+
     try {
       const response = await fetch(`http://localhost:4000/api/search-location?query=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
-      
+
       if (data.success) {
         const { lat, lng, formatted_address } = data.location;
         setSearchedLocation([lat, lng]);
         setMapCenter([lat, lng]);
         setMapZoom(13);
-        
+
         // Find nearby spots
         const nearbySpots = findNearbySpots(lat, lng, 25);
         setVisibleSpots(nearbySpots);
-        
+
         // Get nearby places
         const placesResponse = await fetch(`http://localhost:4000/api/nearby-places?lat=${lat}&lng=${lng}&radius=5000`);
         const placesData = await placesResponse.json();
-        
+
         if (placesData.success) {
           setSearchResults(placesData.places);
         }
@@ -3439,18 +3811,18 @@ const Maps = () => {
       setShowAutocomplete(false);
       return;
     }
-    
+
     // Clear existing timeout
     if (autocompleteTimeout) {
       clearTimeout(autocompleteTimeout);
     }
-    
+
     // Set new timeout for debouncing (300ms delay)
     const timeout = setTimeout(async () => {
       try {
         const response = await fetch(`http://localhost:4000/api/autocomplete?input=${encodeURIComponent(input)}`);
         const data = await response.json();
-        
+
         if (data.success) {
           setAutocompletePredictions(data.predictions);
           setShowAutocomplete(true);
@@ -3464,7 +3836,7 @@ const Maps = () => {
         setShowAutocomplete(false);
       }
     }, 300);
-    
+
     setAutocompleteTimeout(timeout);
   };
 
@@ -3478,11 +3850,11 @@ const Maps = () => {
   const handleSearchResultClick = (place: any) => {
     const lat = place.location.lat;
     const lng = place.location.lng;
-    
+
     setSearchedLocation([lat, lng]);
     setMapCenter([lat, lng]);
     setMapZoom(15);
-    
+
     // Find nearby spots
     const nearbySpots = findNearbySpots(lat, lng, 10);
     setVisibleSpots(nearbySpots);
@@ -3508,7 +3880,7 @@ const Maps = () => {
   const getSpotsInBounds = (bounds: L.LatLngBounds | null) => {
     const spotsToSearch = skateSpotsFromAPI.length > 0 ? skateSpotsFromAPI : skateSpots;
     if (!bounds) return spotsToSearch;
-    
+
     return spotsToSearch.filter(spot => {
       const [lat, lng] = spot.coordinates;
       return bounds.contains([lat, lng]);
@@ -3520,19 +3892,35 @@ const Maps = () => {
     const R = 3959; // Earth's radius in miles
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
-  // Get marker icon based on type
-  const getMarkerIcon = (type: string) => {
+  // Get marker icon based on type and source
+  const getMarkerIcon = (type: string, source: string = 'database') => {
+    const isApiSpot = source === 'api';
     const iconColor = type === 'park' ? '#dc3545' : '#28a745';
+    const borderColor = isApiSpot ? '#17a2b8' : 'white';
+    const borderWidth = isApiSpot ? 3 : 2;
+
     return L.divIcon({
       className: 'custom-marker',
-      html: `<div style="background-color: ${iconColor}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+      html: `
+        <div style="
+          background-color: ${iconColor}; 
+          width: 20px; 
+          height: 20px; 
+          border-radius: 50%; 
+          border: ${borderWidth}px solid ${borderColor}; 
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          position: relative;
+        ">
+          ${isApiSpot ? '<div style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background-color: #17a2b8; border-radius: 50%; border: 1px solid white;"></div>' : ''}
+        </div>
+      `,
       iconSize: [20, 20],
       iconAnchor: [10, 10]
     });
@@ -3552,22 +3940,37 @@ const Maps = () => {
     const map = useMapEvents({
       moveend: () => {
         const bounds = map.getBounds();
-        console.log('Map moved. New bounds:', bounds);
+        const zoom = map.getZoom();
+        console.log('Map moved. New bounds:', bounds, 'Zoom:', zoom);
         setMapBounds(bounds);
-        // Filter spots for the current area
-        filterSpotsInBounds(bounds);
+        setCurrentZoom(zoom);
+
+        // Clear previous timeout
+        if (mapBoundsTimeout) {
+          clearTimeout(mapBoundsTimeout);
+        }
+
+        // Debounce API calls to avoid too many requests
+        const newTimeout = setTimeout(() => {
+          filterSpotsInBounds(bounds, zoom);
+        }, 1000); // Wait 1 second after user stops moving map
+
+        setMapBoundsTimeout(newTimeout);
       },
       zoomend: () => {
         const bounds = map.getBounds();
         const zoom = map.getZoom();
         console.log('Map zoomed. New bounds:', bounds, 'Zoom:', zoom);
         setMapBounds(bounds);
-        
-        // Update current zoom level
         setCurrentZoom(zoom);
-        
-        // Filter spots for the current area
-        filterSpotsInBounds(bounds);
+
+        // Clear previous timeout
+        if (mapBoundsTimeout) {
+          clearTimeout(mapBoundsTimeout);
+        }
+
+        // Immediate update on zoom (more intentional user action)
+        filterSpotsInBounds(bounds, zoom);
       }
     });
     return null;
@@ -3634,7 +4037,7 @@ const Maps = () => {
         },
         body: JSON.stringify({ rating, comment })
       });
-      
+
       if (response.ok) {
         alert('Review added successfully!');
         setShowReviewModal(false);
@@ -3663,7 +4066,7 @@ const Maps = () => {
         },
         body: JSON.stringify({ photoUrl, caption })
       });
-      
+
       if (response.ok) {
         alert('Photo added successfully!');
         setShowPhotoModal(false);
@@ -3687,10 +4090,15 @@ const Maps = () => {
           <div className="map-header mb-3">
             <h2><i className="bi bi-geo-alt-fill me-2"></i>Skate Spots Map</h2>
             <p className="text-muted">
-              Discover the best skating locations in your area • 
+              Discover the best skating locations in your area •
               <span className="text-primary fw-bold ms-1">
                 {visibleSpots.length} spots visible
               </span>
+              {showWeatherFilter && (
+                <span className="text-info ms-2">
+                  <i className="bi bi-cloud-sun me-1"></i>Good weather only
+                </span>
+              )}
               {mapBounds && (
                 <span className="text-muted ms-2">
                   (Zoom in/out to see more spots • Current zoom: {currentZoom})
@@ -3698,37 +4106,73 @@ const Maps = () => {
               )}
             </p>
           </div>
-          
+
           <div className="map-controls mb-3">
             <div className="row align-items-center">
-              <div className="col-md-2">
-                <div className="btn-group" role="group">
-                  <Button 
-                    variant={selectedFilter === 'all' ? 'primary' : 'outline-primary'} 
-                    size="sm"
-                    onClick={() => setSelectedFilter('all')}
-                  >
-                    All Spots
-                  </Button>
-                  <Button 
-                    variant={selectedFilter === 'park' ? 'primary' : 'outline-primary'} 
-                    size="sm"
-                    onClick={() => setSelectedFilter('park')}
-                  >
-                    <i className="bi bi-building me-1"></i>Parks
-                  </Button>
-                  <Button 
-                    variant={selectedFilter === 'trail' ? 'primary' : 'outline-primary'} 
-                    size="sm"
-                    onClick={() => setSelectedFilter('trail')}
-                  >
-                    <i className="bi bi-sign-intersection me-1"></i>Trails
-                  </Button>
+              <div className="col-md-3">
+                <div className="d-flex flex-wrap gap-2">
+                  <div className="btn-group" role="group">
+                    <Button
+                      variant={selectedFilter === 'all' ? 'primary' : 'outline-primary'}
+                      size="sm"
+                      onClick={() => setSelectedFilter('all')}
+                    >
+                      All Spots
+                    </Button>
+                    <Button
+                      variant={selectedFilter === 'park' ? 'primary' : 'outline-primary'}
+                      size="sm"
+                      onClick={() => setSelectedFilter('park')}
+                    >
+                      <i className="bi bi-building me-1"></i>Parks
+                    </Button>
+                    <Button
+                      variant={selectedFilter === 'trail' ? 'primary' : 'outline-primary'}
+                      size="sm"
+                      onClick={() => setSelectedFilter('trail')}
+                    >
+                      <i className="bi bi-sign-intersection me-1"></i>Trails
+                    </Button>
+                  </div>
+
+                  {/* Auto-Discovery Toggle */}
+                  <div className="d-flex align-items-center ms-2">
+                    <Form.Check
+                      type="switch"
+                      id="auto-discovery-switch"
+                      label={
+                        <span className="small">
+                          <i className="bi bi-compass me-1"></i>
+                          Auto-discover {loadingApiSpots && <i className="bi bi-hourglass-split text-primary ms-1"></i>}
+                        </span>
+                      }
+                      checked={autoDiscovery}
+                      onChange={(e) => setAutoDiscovery(e.target.checked)}
+                      className="small"
+                    />
+                  </div>
+
+                  {/* Weather Filter Toggle */}
+                  <div className="d-flex align-items-center ms-2">
+                    <Form.Check
+                      type="switch"
+                      id="weather-filter-switch"
+                      label={
+                        <span className="small">
+                          <i className="bi bi-cloud-sun me-1"></i>
+                          Good weather only
+                        </span>
+                      }
+                      checked={showWeatherFilter}
+                      onChange={(e) => setShowWeatherFilter(e.target.checked)}
+                      className="small"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="col-md-2 text-center">
-                <Button 
-                  variant="outline-secondary" 
+                <Button
+                  variant="outline-secondary"
                   size="sm"
                   onClick={() => {
                     setShowCitySearch(!showCitySearch);
@@ -3747,8 +4191,8 @@ const Maps = () => {
                         onChange={(e) => setSearchCity(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && searchForCity()}
                       />
-                      <Button 
-                        variant="primary" 
+                      <Button
+                        variant="primary"
                         size="sm"
                         onClick={searchForCity}
                       >
@@ -3759,8 +4203,8 @@ const Maps = () => {
                 )}
               </div>
               <div className="col-md-2 text-center">
-                <Button 
-                  variant="success" 
+                <Button
+                  variant="success"
                   size="sm"
                   onClick={() => {
                     alert('Submit New Spot feature coming soon! This will allow users to add new skate spots to the map.');
@@ -3770,8 +4214,8 @@ const Maps = () => {
                 </Button>
               </div>
               <div className="col-md-3 text-center">
-                <Button 
-                  variant="outline-warning" 
+                <Button
+                  variant="outline-warning"
                   size="sm"
                   onClick={() => {
                     setShowAddressSearch(!showAddressSearch);
@@ -3790,8 +4234,8 @@ const Maps = () => {
                         onChange={(e) => setSearchAddress(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && searchForAddress()}
                       />
-                      <Button 
-                        variant="primary" 
+                      <Button
+                        variant="primary"
                         size="sm"
                         onClick={searchForAddress}
                         disabled={isSearching}
@@ -3807,8 +4251,8 @@ const Maps = () => {
                 )}
               </div>
               <div className="col-md-3 text-center">
-                <Button 
-                  variant="outline-success" 
+                <Button
+                  variant="outline-success"
                   size="sm"
                   onClick={() => {
                     setSearchQuery('');
@@ -3835,8 +4279,8 @@ const Maps = () => {
                         }
                       }}
                     />
-                    <Button 
-                      variant="primary" 
+                    <Button
+                      variant="primary"
                       size="sm"
                       onClick={handleLocationSearch}
                       disabled={isSearching}
@@ -3848,23 +4292,23 @@ const Maps = () => {
                       )}
                     </Button>
                   </div>
-                  
+
                   {/* Autocomplete Dropdown */}
                   {showAutocomplete && autocompletePredictions.length > 0 && (
                     <div className="autocomplete-dropdown">
                       {autocompletePredictions.map((prediction, index) => (
-                        <div 
-                          key={index} 
+                        <div
+                          key={index}
                           className="autocomplete-item"
                           onClick={() => handleAutocompleteSelect(prediction)}
                         >
                           <i className="bi bi-geo-alt me-2"></i>
                           {prediction.description}
                         </div>
-                  ))}
+                      ))}
                     </div>
                   )}
-                  
+
                   {searchError && (
                     <div className="text-danger small mt-1">{searchError}</div>
                   )}
@@ -3875,8 +4319,8 @@ const Maps = () => {
                       </div>
                       <div className="search-results-list">
                         {searchResults.slice(0, 5).map((place, index) => (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className="search-result-item"
                             onClick={() => handleSearchResultClick(place)}
                           >
@@ -3896,17 +4340,17 @@ const Maps = () => {
                 </div>
               </div>
               <div className="col-md-3 text-end">
-                <Button 
-                  variant="outline-info" 
-                  size="sm" 
+                <Button
+                  variant="outline-info"
+                  size="sm"
                   className="me-2"
                   onClick={getUserLocation}
                 >
                   <i className="bi bi-geo-alt me-1"></i>My Location
                 </Button>
                 {user && (
-                  <Button 
-                    variant="outline-success" 
+                  <Button
+                    variant="outline-success"
                     size="sm"
                     onClick={() => setShowAddSpotModal(true)}
                   >
@@ -3931,22 +4375,56 @@ const Maps = () => {
                 attribution="&copy; OpenStreetMap contributors"
               />
               <MapBoundsTracker />
-              
+
               {/* Skate Spot Markers */}
               {visibleSpots.map((spot) => (
-                <Marker 
+                <Marker
                   key={spot.id}
                   position={spot.coordinates}
-                  icon={getMarkerIcon(spot.type)}
+                  icon={getMarkerIcon(spot.type, spot.source)}
                   eventHandlers={{
                     click: () => setSelectedSpot(spot)
                   }}
                 >
                   <Popup>
                     <div className="spot-popup">
-                      <h6 className="mb-2">{spot.name}</h6>
+                      <h6 className="mb-2">
+                        {spot.name}
+                        {spot.source === 'api' && (
+                          <i className="bi bi-compass text-info ms-1" title="Discovered via Google Places"></i>
+                        )}
+                      </h6>
                       <small className="text-muted d-block mb-2">{spot.city}</small>
                       <p className="text-muted small mb-2">{spot.description}</p>
+
+                      {/* Weather Information */}
+                      {spot.weather && (
+                        <div className="weather-info mb-2 p-2 rounded" style={{
+                          backgroundColor: isGoodSkatingWeather(spot.weather) ? '#d4edda' : '#f8d7da',
+                          border: `1px solid ${isGoodSkatingWeather(spot.weather) ? '#c3e6cb' : '#f5c6cb'}`
+                        }}>
+                          <div className="d-flex align-items-center justify-content-between">
+                            <span className="small fw-bold">
+                              {getWeatherIcon(spot.weather)} {Math.round(spot.weather.temperature)}°C
+                            </span>
+                            <span className={`small ${isGoodSkatingWeather(spot.weather) ? 'text-success' : 'text-danger'}`}>
+                              {isGoodSkatingWeather(spot.weather) ? '✅ Good for skating' : '❌ Poor conditions'}
+                            </span>
+                          </div>
+                          <div className="small text-muted mt-1">
+                            {spot.weather.description} • Wind: {Math.round(spot.weather.windSpeed * 3.6)} km/h
+                          </div>
+                        </div>
+                      )}
+
+                      {spot.weatherLoading && (
+                        <div className="weather-loading mb-2 p-2 rounded bg-light text-center">
+                          <small className="text-muted">
+                            <i className="bi bi-hourglass-split me-1"></i>Loading weather...
+                          </small>
+                        </div>
+                      )}
+
                       <div className="spot-details">
                         <div className="d-flex justify-content-between mb-1">
                           <span>Difficulty:</span>
@@ -3956,12 +4434,23 @@ const Maps = () => {
                         </div>
                         <div className="d-flex justify-content-between mb-1">
                           <span>Rating:</span>
-                          <span><i className="bi bi-star-fill text-warning me-1"></i>{spot.rating} ({spot.reviews})</span>
+                          <span>
+                            <i className="bi bi-star-fill text-warning me-1"></i>
+                            {spot.rating || 'N/A'}
+                            {spot.reviews > 0 && ` (${spot.reviews})`}
+                          </span>
                         </div>
                         <div className="d-flex justify-content-between mb-1">
-                          <span>Crowd:</span>
-                          <span style={{ color: getCrowdLevelColor(spot.crowdLevel) }}>
-                            {spot.crowdLevel}
+                          <span>{spot.source === 'api' ? 'Status:' : 'Crowd:'}:</span>
+                          <span style={{
+                            color: spot.source === 'api'
+                              ? (spot.business_status === 'OPERATIONAL' ? '#28a745' : '#dc3545')
+                              : getCrowdLevelColor(spot.crowdLevel)
+                          }}>
+                            {spot.source === 'api'
+                              ? (spot.business_status || 'Unknown').toLowerCase().replace('_', ' ')
+                              : spot.crowdLevel
+                            }
                           </span>
                         </div>
                         <div className="d-flex justify-content-between">
@@ -3970,13 +4459,25 @@ const Maps = () => {
                         </div>
                       </div>
                       <div className="mt-2">
-                        <Button 
-                          variant="outline-primary" 
-                          size="sm" 
-                          onClick={() => fetchEnhancedSpotData(spot.id)}
-                        >
-                          <i className="bi bi-info-circle me-1"></i>Enhanced Info
-                        </Button>
+                        {spot.source === 'database' ? (
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => fetchEnhancedSpotData(spot.id)}
+                          >
+                            <i className="bi bi-info-circle me-1"></i>Enhanced Info
+                          </Button>
+                        ) : (
+                          user && (
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              onClick={() => saveApiSpotToDatabase(spot)}
+                            >
+                              <i className="bi bi-save me-1"></i>Save Spot
+                            </Button>
+                          )
+                        )}
                       </div>
                     </div>
                   </Popup>
@@ -3985,9 +4486,9 @@ const Maps = () => {
 
               {/* User Location */}
               {showUserLocation && userLocation && (
-                <CircleMarker 
-                  center={userLocation} 
-                  radius={8} 
+                <CircleMarker
+                  center={userLocation}
+                  radius={8}
                   pathOptions={{ color: '#007bff', fillColor: '#007bff', fillOpacity: 0.7 }}
                 >
                   <Popup>Your Location</Popup>
@@ -3996,9 +4497,9 @@ const Maps = () => {
 
               {/* Searched Address Location */}
               {searchedLocation && (
-                <CircleMarker 
-                  center={searchedLocation} 
-                  radius={10} 
+                <CircleMarker
+                  center={searchedLocation}
+                  radius={10}
                   pathOptions={{ color: '#ffc107', fillColor: '#ffc107', fillOpacity: 0.8 }}
                 >
                   <Popup>Searched Address</Popup>
@@ -4033,7 +4534,7 @@ const Maps = () => {
               {savedRoutes.map((r, i) => (
                 <div key={i} className="saved-route-item mb-2 p-2 border rounded">
                   <span>Route {i + 1} ({r.length} points)</span>
-                  <Button variant="outline-danger" size="sm" className="ms-2" 
+                  <Button variant="outline-danger" size="sm" className="ms-2"
                     onClick={() => setSavedRoutes(prev => prev.filter((_, index) => index !== i))}>
                     Delete
                   </Button>
@@ -4046,20 +4547,52 @@ const Maps = () => {
         {/* Sidebar */}
         <div className="col-lg-3">
           <div className="spots-sidebar">
-            <h5 className="mb-3">Skate Spots ({filteredSpots.length})</h5>
-            
+            <h5 className="mb-3">
+              Skate Spots ({filteredSpots.length})
+              {loadingApiSpots && (
+                <i className="bi bi-hourglass-split text-primary ms-2" title="Discovering new spots..."></i>
+              )}
+            </h5>
+
             {filteredSpots.map((spot) => (
-              <div 
-                key={spot.id} 
-                className={`spot-card mb-3 p-3 border rounded cursor-pointer ${selectedSpot?.id === spot.id ? 'border-primary' : ''}`}
+              <div
+                key={spot.id}
+                className={`spot-card mb-3 p-3 border rounded cursor-pointer ${selectedSpot?.id === spot.id ? 'border-primary' : ''} ${spot.source === 'api' ? 'border-info' : ''}`}
                 onClick={() => setSelectedSpot(spot)}
               >
                 <div className="d-flex justify-content-between align-items-start mb-2">
-                  <h6 className="mb-1">{spot.name}</h6>
+                  <div className="flex-grow-1">
+                    <h6 className="mb-1">
+                      {spot.name}
+                      {spot.source === 'api' && (
+                        <i className="bi bi-compass text-info ms-1" title="Discovered via Google Places"></i>
+                      )}
+                    </h6>
+                    {spot.source === 'api' && user && (
+                      <Button
+                        variant="outline-success"
+                        size="sm"
+                        className="mt-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          saveApiSpotToDatabase(spot);
+                        }}
+                      >
+                        <i className="bi bi-save me-1"></i>Save to Database
+                      </Button>
+                    )}
+                  </div>
                   <div className="text-end">
-                    <span className={`badge bg-${spot.type === 'park' ? 'danger' : 'success'} me-1`}>
-                      {spot.type}
-                    </span>
+                    <div className="d-flex gap-1 mb-1">
+                      <span className={`badge bg-${spot.type === 'park' ? 'danger' : 'success'} me-1`}>
+                        {spot.type}
+                      </span>
+                      {spot.source === 'api' && (
+                        <span className="badge bg-info">
+                          <i className="bi bi-compass"></i>
+                        </span>
+                      )}
+                    </div>
                     <small className="text-muted d-block">{spot.city}</small>
                   </div>
                 </div>
@@ -4068,18 +4601,67 @@ const Maps = () => {
                   <div className="d-flex justify-content-between align-items-center mb-1">
                     <span className="small">Rating:</span>
                     <span className="small">
-                      <i className="bi bi-star-fill text-warning me-1"></i>{spot.rating}
+                      <i className="bi bi-star-fill text-warning me-1"></i>
+                      {spot.rating || 'N/A'}
+                      {spot.reviews > 0 && <span className="text-muted ms-1">({spot.reviews})</span>}
                     </span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center">
-                    <span className="small">Crowd:</span>
-                    <span className="small" style={{ color: getCrowdLevelColor(spot.crowdLevel) }}>
-                      {spot.crowdLevel}
+                    <span className="small">
+                      {spot.source === 'api' ? 'Status:' : 'Crowd:'}
+                    </span>
+                    <span className="small" style={{
+                      color: spot.source === 'api'
+                        ? (spot.business_status === 'OPERATIONAL' ? '#28a745' : '#dc3545')
+                        : getCrowdLevelColor(spot.crowdLevel)
+                    }}>
+                      {spot.source === 'api'
+                        ? (spot.business_status || 'Unknown').toLowerCase().replace('_', ' ')
+                        : spot.crowdLevel
+                      }
                     </span>
                   </div>
+
+                  {/* Weather Info in Sidebar */}
+                  {spot.weather && (
+                    <div className="d-flex justify-content-between align-items-center mt-1">
+                      <span className="small">Weather:</span>
+                      <span className="small d-flex align-items-center">
+                        {getWeatherIcon(spot.weather)}
+                        <span className="ms-1">{Math.round(spot.weather.temperature)}°C</span>
+                        {isGoodSkatingWeather(spot.weather) ? (
+                          <i className="bi bi-check-circle-fill text-success ms-1" title="Good for skating"></i>
+                        ) : (
+                          <i className="bi bi-x-circle-fill text-danger ms-1" title="Poor conditions"></i>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {spot.weatherLoading && (
+                    <div className="d-flex justify-content-between align-items-center mt-1">
+                      <span className="small">Weather:</span>
+                      <span className="small text-muted">
+                        <i className="bi bi-hourglass-split"></i> Loading...
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+
+            {/* No spots message */}
+            {filteredSpots.length === 0 && !loadingSpots && !loadingApiSpots && (
+              <div className="text-center text-muted py-4">
+                <i className="bi bi-search h4 mb-2 d-block"></i>
+                <p>No spots found in this area.</p>
+                {!autoDiscovery && (
+                  <p className="small">
+                    Try enabling auto-discovery to find more spots!
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -4090,9 +4672,9 @@ const Maps = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h5>Add New Skate Spot</h5>
-              <Button 
-                type="button" 
-                className="btn-close" 
+              <Button
+                type="button"
+                className="btn-close"
                 onClick={() => setShowAddSpotModal(false)}
               ></Button>
             </div>
@@ -4100,18 +4682,18 @@ const Maps = () => {
               <Form>
                 <Form.Group className="mb-3">
                   <Form.Label>Spot Name</Form.Label>
-                  <Form.Control 
-                    type="text" 
+                  <Form.Control
+                    type="text"
                     value={newSpot.name}
-                    onChange={(e) => setNewSpot({...newSpot, name: e.target.value})}
+                    onChange={(e) => setNewSpot({ ...newSpot, name: e.target.value })}
                     placeholder="Enter spot name"
                   />
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Type</Form.Label>
-                  <Form.Select 
+                  <Form.Select
                     value={newSpot.type}
-                    onChange={(e) => setNewSpot({...newSpot, type: e.target.value})}
+                    onChange={(e) => setNewSpot({ ...newSpot, type: e.target.value })}
                   >
                     <option value="park">Skate Park</option>
                     <option value="trail">Trail</option>
@@ -4119,9 +4701,9 @@ const Maps = () => {
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Difficulty</Form.Label>
-                  <Form.Select 
+                  <Form.Select
                     value={newSpot.difficulty}
-                    onChange={(e) => setNewSpot({...newSpot, difficulty: e.target.value})}
+                    onChange={(e) => setNewSpot({ ...newSpot, difficulty: e.target.value })}
                   >
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -4130,11 +4712,11 @@ const Maps = () => {
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Description</Form.Label>
-                  <Form.Control 
-                    as="textarea" 
+                  <Form.Control
+                    as="textarea"
                     rows={3}
                     value={newSpot.description}
-                    onChange={(e) => setNewSpot({...newSpot, description: e.target.value})}
+                    onChange={(e) => setNewSpot({ ...newSpot, description: e.target.value })}
                     placeholder="Describe the spot..."
                   />
                 </Form.Group>
@@ -4158,9 +4740,9 @@ const Maps = () => {
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h5><i className="bi bi-geo-alt-fill me-2"></i>{enhancedSpotData.name}</h5>
-              <Button 
-                type="button" 
-                className="btn-close" 
+              <Button
+                type="button"
+                className="btn-close"
                 onClick={() => setShowEnhancedSpotModal(false)}
               ></Button>
             </div>
@@ -4252,8 +4834,8 @@ const Maps = () => {
                     {enhancedSpotData.photos && enhancedSpotData.photos.length > 0 ? (
                       enhancedSpotData.photos.slice(0, 6).map((photo: any, index: number) => (
                         <div key={index} className="col-md-4 mb-2">
-                          <img 
-                            src={photo.photo_url} 
+                          <img
+                            src={photo.photo_url}
                             alt={`Photo ${index + 1}`}
                             className="img-fluid rounded"
                             style={{ height: '120px', width: '100%', objectFit: 'cover' }}
@@ -4314,9 +4896,9 @@ const Maps = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h5>Add Review</h5>
-              <Button 
-                type="button" 
-                className="btn-close" 
+              <Button
+                type="button"
+                className="btn-close"
                 onClick={() => setShowReviewModal(false)}
               ></Button>
             </div>
@@ -4369,9 +4951,9 @@ const Maps = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h5>Add Photo</h5>
-              <Button 
-                type="button" 
-                className="btn-close" 
+              <Button
+                type="button"
+                className="btn-close"
                 onClick={() => setShowPhotoModal(false)}
               ></Button>
             </div>
@@ -4443,7 +5025,7 @@ const Events = () => {
   const [showForm, setShowForm] = React.useState(false);
   const [showAddEventForm, setShowAddEventForm] = React.useState(false);
   const { user, role } = useAuth();
-  
+
   // Ref for auto-scrolling to form
   const formRef = React.useRef<HTMLDivElement>(null);
 
@@ -4462,17 +5044,17 @@ const Events = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        
+
         const response = await fetch('http://localhost:4000/api/events/pending', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
           console.log('Token expired for pending events fetch');
           localStorage.removeItem('token');
           return;
         }
-        
+
         const data = await response.json();
         setPendingEvents(data.events || []);
       } catch (error) {
@@ -4484,17 +5066,17 @@ const Events = () => {
   const checkAuthStatus = async () => {
     const token = localStorage.getItem('token');
     if (!token) return false;
-    
+
     try {
       const response = await fetch('http://localhost:4000/api/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.status === 401) {
         localStorage.removeItem('token');
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -4529,14 +5111,14 @@ const Events = () => {
       setMessage('You must be logged in to submit an event.');
       return;
     }
-    
+
     // Check authentication status first
     const isAuthenticated = await checkAuthStatus();
     if (!isAuthenticated) {
       setMessage('Authentication failed. Please log in again.');
       return;
     }
-    
+
     const token = localStorage.getItem('token');
     if (!token) {
       setMessage('Authentication token not found. Please log in again.');
@@ -4559,7 +5141,7 @@ const Events = () => {
       formData.append('contactPhone', contactPhone || '');
       formData.append('cost', cost || 'Free');
       formData.append('equipment', equipment || '');
-      
+
       if (eventPhoto) {
         formData.append('eventPhoto', eventPhoto);
       }
@@ -4571,11 +5153,11 @@ const Events = () => {
         },
         body: formData,
       });
-      
+
       if (res.ok) {
         setMessage('Event submitted for approval! It will appear on the calendar once approved by an admin.');
-        setTitle(''); 
-        setDescription(''); 
+        setTitle('');
+        setDescription('');
         setDate('');
         setStartTime('');
         setEndTime('');
@@ -4617,9 +5199,9 @@ const Events = () => {
     setShowAddEventForm(true);
     // Auto-scroll to form after a short delay to ensure it's rendered
     setTimeout(() => {
-      formRef.current?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
+      formRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
       });
     }, 100);
   };
@@ -4628,9 +5210,9 @@ const Events = () => {
     setShowForm(true);
     // Auto-scroll to form after a short delay to ensure it's rendered
     setTimeout(() => {
-      formRef.current?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
+      formRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
       });
     }, 100);
   };
@@ -4643,19 +5225,19 @@ const Events = () => {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
-    
+
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDay; i++) {
       days.push(null);
     }
-    
+
     // Add all days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i));
     }
-    
+
     return days;
   };
 
@@ -4667,9 +5249,9 @@ const Events = () => {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -4702,7 +5284,7 @@ const Events = () => {
 
   const days = getDaysInMonth(currentDate);
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
-  const selectedDatePendingEvents = selectedDate && role === 'admin' ? 
+  const selectedDatePendingEvents = selectedDate && role === 'admin' ?
     pendingEvents.filter(event => {
       const eventDate = new Date(event.date);
       return eventDate.toDateString() === selectedDate.toDateString();
@@ -4723,8 +5305,8 @@ const Events = () => {
           <div className="card mb-4">
             <div className="card-header">
               <div className="d-flex justify-content-between align-items-center">
-                <Button 
-                  variant="outline-primary" 
+                <Button
+                  variant="outline-primary"
                   size="sm"
                   onClick={() => navigateMonth('prev')}
                 >
@@ -4733,8 +5315,8 @@ const Events = () => {
                 <h4 className="mb-0">
                   {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                 </h4>
-                <Button 
-                  variant="outline-primary" 
+                <Button
+                  variant="outline-primary"
                   size="sm"
                   onClick={() => navigateMonth('next')}
                 >
@@ -4752,19 +5334,16 @@ const Events = () => {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Calendar days */}
                 <div className="calendar-days">
                   {days.map((date, index) => (
                     <div
                       key={index}
-                      className={`calendar-day ${!date ? 'empty' : ''} ${
-                        date && isToday(date) ? 'today' : ''
-                      } ${
-                        date && isSelected(date) ? 'selected' : ''
-                      } ${
-                        date && getEventsForDate(date).length > 0 ? 'has-events' : ''
-                      }`}
+                      className={`calendar-day ${!date ? 'empty' : ''} ${date && isToday(date) ? 'today' : ''
+                        } ${date && isSelected(date) ? 'selected' : ''
+                        } ${date && getEventsForDate(date).length > 0 ? 'has-events' : ''
+                        }`}
                       onClick={() => date && handleDateClick(date)}
                     >
                       {date && (
@@ -4848,9 +5427,9 @@ const Events = () => {
                               {event.submittedBy}
                             </small>
                             <div className="mt-2">
-                              <Button 
-                                variant="success" 
-                                size="sm" 
+                              <Button
+                                variant="success"
+                                size="sm"
                                 className="me-2"
                                 onClick={async () => {
                                   const token = localStorage.getItem('token');
@@ -4865,8 +5444,8 @@ const Events = () => {
                                 <i className="bi bi-check me-1"></i>
                                 Approve
                               </Button>
-                              <Button 
-                                variant="danger" 
+                              <Button
+                                variant="danger"
                                 size="sm"
                                 onClick={async () => {
                                   const token = localStorage.getItem('token');
@@ -4892,8 +5471,8 @@ const Events = () => {
                   {selectedDateEvents.length === 0 && selectedDatePendingEvents.length === 0 && (
                     <div className="text-center">
                       <p className="text-muted mb-3">No events scheduled for this date.</p>
-                      <Button 
-                        variant="outline-primary" 
+                      <Button
+                        variant="outline-primary"
                         size="sm"
                         onClick={() => setShowAddEventForm(true)}
                       >
@@ -5120,15 +5699,15 @@ const Events = () => {
                 />
                 {photoPreview && (
                   <div className="mt-2">
-                    <img 
-                      src={photoPreview} 
-                      alt="Event preview" 
+                    <img
+                      src={photoPreview}
+                      alt="Event preview"
                       style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover' }}
                       className="border rounded"
                     />
-                    <Button 
-                      size="sm" 
-                      variant="outline-danger" 
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
                       className="ms-2"
                       onClick={() => {
                         setEventPhoto(null);
@@ -5145,9 +5724,9 @@ const Events = () => {
                   <i className="bi bi-check-circle me-1"></i>
                   Submit Event
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="secondary" 
+                <Button
+                  type="button"
+                  variant="secondary"
                   onClick={() => {
                     setShowForm(false);
                     setShowAddEventForm(false);
@@ -5195,9 +5774,9 @@ const Events = () => {
                 <div key={event.id} className="col-md-6 col-lg-4 mb-3">
                   <div className="card h-100">
                     {event.eventPhoto && (
-                      <img 
-                        src={`http://localhost:4000${event.eventPhoto}`} 
-                        className="card-img-top" 
+                      <img
+                        src={`http://localhost:4000${event.eventPhoto}`}
+                        className="card-img-top"
                         alt={event.title}
                         style={{ height: '200px', objectFit: 'cover' }}
                       />
@@ -5210,7 +5789,7 @@ const Events = () => {
                         </span>
                       </div>
                       <p className="card-text">{event.description}</p>
-                      
+
                       <div className="mb-2">
                         <p className="text-muted mb-1">
                           <i className="bi bi-calendar me-1"></i>
@@ -5243,7 +5822,7 @@ const Events = () => {
                           </p>
                         )}
                       </div>
-                      
+
                       <p className="text-muted mb-0">
                         <i className="bi bi-person me-1"></i>
                         Submitted by: {event.submittedBy}
@@ -5275,9 +5854,9 @@ const Events = () => {
                       </h6>
                     </div>
                     {event.eventPhoto && (
-                      <img 
-                        src={`http://localhost:4000${event.eventPhoto}`} 
-                        className="card-img-top" 
+                      <img
+                        src={`http://localhost:4000${event.eventPhoto}`}
+                        className="card-img-top"
                         alt={event.title}
                         style={{ height: '200px', objectFit: 'cover' }}
                       />
@@ -5290,7 +5869,7 @@ const Events = () => {
                         </span>
                       </div>
                       <p className="card-text">{event.description}</p>
-                      
+
                       <div className="mb-2">
                         <p className="text-muted mb-1">
                           <i className="bi bi-calendar me-1"></i>
@@ -5323,15 +5902,15 @@ const Events = () => {
                           </p>
                         )}
                       </div>
-                      
+
                       <p className="text-muted mb-0">
                         <i className="bi bi-person me-1"></i>
                         Submitted by: {event.submittedBy}
                       </p>
                       <div className="mt-3">
-                        <Button 
-                          variant="success" 
-                          size="sm" 
+                        <Button
+                          variant="success"
+                          size="sm"
                           className="me-2"
                           onClick={async () => {
                             const token = localStorage.getItem('token');
@@ -5346,8 +5925,8 @@ const Events = () => {
                           <i className="bi bi-check me-1"></i>
                           Approve
                         </Button>
-                        <Button 
-                          variant="danger" 
+                        <Button
+                          variant="danger"
                           size="sm"
                           onClick={async () => {
                             const token = localStorage.getItem('token');
@@ -5435,7 +6014,7 @@ const AdminEvents = () => {
 const AdminSkateSpots = () => {
   const [pendingSpots, setPendingSpots] = React.useState<any[]>([]);
   const { user, role } = useAuth();
-  
+
   React.useEffect(() => {
     if (role === 'admin') {
       const token = localStorage.getItem('token');
@@ -5466,12 +6045,12 @@ const AdminSkateSpots = () => {
   };
 
   if (role !== 'admin') return <div>Admin access only.</div>;
-  
+
   return (
     <div>
       <h2><i className="bi bi-geo-alt-fill me-2"></i>Pending Skate Spots</h2>
       <p className="text-muted mb-4">Review and approve new skate spot submissions from the community</p>
-      
+
       {pendingSpots.length === 0 ? (
         <div className="text-center py-5">
           <i className="bi bi-check-circle text-success fs-1 mb-3"></i>
@@ -5500,9 +6079,9 @@ const AdminSkateSpots = () => {
                       {new Date(spot.created_at).toLocaleDateString()}
                     </small>
                   </div>
-                  
+
                   <p className="card-text text-muted mb-3">{spot.description}</p>
-                  
+
                   <div className="row mb-3">
                     <div className="col-6">
                       <small className="text-muted">Location:</small>
@@ -5515,7 +6094,7 @@ const AdminSkateSpots = () => {
                       <div className="small">{spot.hours || 'Not specified'}</div>
                     </div>
                   </div>
-                  
+
                   {spot.features && (
                     <div className="mb-3">
                       <small className="text-muted">Features:</small>
@@ -5524,21 +6103,21 @@ const AdminSkateSpots = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="d-flex justify-content-between align-items-center">
                     <small className="text-muted">Submitted by: {spot.submitted_by}</small>
                     <div>
-                      <Button 
-                        size="sm" 
-                        variant="success" 
-                        className="me-2" 
+                      <Button
+                        size="sm"
+                        variant="success"
+                        className="me-2"
                         onClick={() => handleApprove(spot.id)}
                       >
                         <i className="bi bi-check me-1"></i>Approve
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="danger" 
+                      <Button
+                        size="sm"
+                        variant="danger"
                         onClick={() => handleReject(spot.id)}
                       >
                         <i className="bi bi-x me-1"></i>Reject
@@ -5566,19 +6145,19 @@ const Footer = () => (
               <i className="bi bi-lightning-charge text-warning"></i> Skate Community
             </h5>
             <p className="text-muted mb-3">
-              The premier roller skating community. Connecting skaters, 
+              The premier roller skating community. Connecting skaters,
               organizing events, and building friendships through our shared passion for skating.
             </p>
             <div className="footer-contact">
               <p className="mb-1">
                 <i className="bi bi-geo-alt text-primary"></i> Global Community
               </p>
-                              <p className="mb-1">
-                  <i className="bi bi-envelope text-primary"></i> info@skatecommunity.com
-                </p>
-                <p className="mb-0">
-                  <i className="bi bi-telephone text-primary"></i> (555) 123-SKATE
-                </p>
+              <p className="mb-1">
+                <i className="bi bi-envelope text-primary"></i> info@skatecommunity.com
+              </p>
+              <p className="mb-0">
+                <i className="bi bi-telephone text-primary"></i> (555) 123-SKATE
+              </p>
             </div>
           </div>
         </div>
@@ -5685,14 +6264,14 @@ const Footer = () => (
                 <i className="bi bi-discord"></i>
               </a>
             </div>
-            
+
             <div className="newsletter">
               <h6 className="mb-2">Stay Updated</h6>
               <p className="text-muted small mb-3">Get the latest events and skating news!</p>
               <div className="input-group">
-                <input 
-                  type="email" 
-                  className="form-control form-control-sm" 
+                <input
+                  type="email"
+                  className="form-control form-control-sm"
                   placeholder="Your email"
                 />
                 <button className="btn btn-primary btn-sm" type="button">
@@ -5758,21 +6337,21 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           'Authorization': `Bearer ${token}`
         }
       })
-      .then(response => {
-        if (response.ok) {
-          return response.json();
-        } else {
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          } else {
+            localStorage.removeItem('token');
+            throw new Error('Invalid token');
+          }
+        })
+        .then(data => {
+          setUser(data.user.username);
+          setRole(data.user.role);
+        })
+        .catch(() => {
           localStorage.removeItem('token');
-          throw new Error('Invalid token');
-        }
-      })
-      .then(data => {
-        setUser(data.user.username);
-        setRole(data.user.role);
-      })
-      .catch(() => {
-        localStorage.removeItem('token');
-      });
+        });
     }
   }, []);
 
@@ -5786,9 +6365,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         },
         body: JSON.stringify({ username, password }),
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         // Store the token and user info
         localStorage.setItem('token', data.token);
@@ -5813,9 +6392,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         },
         body: JSON.stringify({ username, password, email }),
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         // Store the token and user info
         localStorage.setItem('token', data.token);
@@ -6104,7 +6683,7 @@ function WeatherWidget() {
   if (!weather || !weather.weather) return null;
   return (
     <div className="weather-widget" style={{ margin: '0 auto', maxWidth: 300, marginBottom: 16 }}>
-      <img src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}.png`} alt="weather" style={{width: 28, height: 28}} />
+      <img src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}.png`} alt="weather" style={{ width: 28, height: 28 }} />
       {Math.round(weather.main.temp)}°F {weather.weather[0].main}
     </div>
   );
@@ -6127,8 +6706,8 @@ const UserDropdown: React.FC = () => {
 
   return (
     <Dropdown align="end">
-      <Dropdown.Toggle 
-        variant="outline-light" 
+      <Dropdown.Toggle
+        variant="outline-light"
         id="user-dropdown"
         title={`${user} - Click for account options`}
         style={{
@@ -6213,7 +6792,7 @@ function AppLayout({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: 
               {user && currentPath !== '/profiles' && <Nav.Link as={Link} to="/profiles">Profiles</Nav.Link>}
               {user && currentPath !== '/maps' && <Nav.Link as={Link} to="/maps">Maps</Nav.Link>}
               {role === 'admin' && <Nav.Link as={Link} to="/admin-events">Admin Events</Nav.Link>}
-        {role === 'admin' && <Nav.Link as={Link} to="/admin-skate-spots">Admin Skate Spots</Nav.Link>}
+              {role === 'admin' && <Nav.Link as={Link} to="/admin-skate-spots">Admin Skate Spots</Nav.Link>}
               {!user && currentPath !== '/login' && <Nav.Link as={Link} to="/login">Login</Nav.Link>}
             </Nav>
             <Nav className="ms-auto">
@@ -6241,7 +6820,7 @@ function AppLayout({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: 
           <Route path="/" element={<Landing />} />
           <Route path="/events" element={<Events />} />
           <Route path="/admin-events" element={<RequireAuth role="admin"><AdminEvents /></RequireAuth>} />
-        <Route path="/admin-skate-spots" element={<RequireAuth role="admin"><AdminSkateSpots /></RequireAuth>} />
+          <Route path="/admin-skate-spots" element={<RequireAuth role="admin"><AdminSkateSpots /></RequireAuth>} />
           <Route path="/login" element={<Login />} />
           <Route path="/gallery" element={<RequireAuth><Gallery /></RequireAuth>} />
           <Route path="/chat" element={<RequireAuth><Chat /></RequireAuth>} />
@@ -6283,7 +6862,7 @@ function App() {
         <div className="skate-pattern"></div>
         <div className="skate-grid"></div>
         <div className="skate-ramp"></div>
-        
+
         {/* Floating Inline Skating Elements */}
         <div className="skate-element">⛸️</div>
         <div className="skate-element">⚡</div>
@@ -6291,13 +6870,13 @@ function App() {
         <div className="skate-element">💨</div>
         <div className="skate-element">🎯</div>
         <div className="skate-element">🏆</div>
-        
+
         {/* Skate Park Elements */}
         <div className="skate-park-element"></div>
         <div className="skate-park-element"></div>
         <div className="skate-park-element"></div>
         <div className="skate-park-element"></div>
-        
+
         <AppLayout darkMode={darkMode} setDarkMode={setDarkMode} />
       </Router>
     </AuthProvider>
