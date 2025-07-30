@@ -28,7 +28,19 @@
     "eject": "react-scripts eject",
     "backend": "cd backend && node server.js",
     "dev": "concurrently \"npm run backend\" \"npm start\"",
-    "server": "cd backend && node server.js"
+    "server": "cd backend && node server.js",
+    "setup": "npm install && cd backend && npm install",
+    "setup:db": "cd backend && node setup-database.js",
+    "dev:windows": "concurrently \"cd backend && node server.js\" \"npm start\"",
+    "dev:macos": "concurrently \"cd backend && node server.js\" \"npm start\"",
+    "vercel-build": "npm run build",
+    "db:check": "cd backend && node check-db.js",
+    "db:reset": "cd backend && rm -f db.sqlite && npm run migrate",
+    "db:migrate": "cd backend && npm run migrate",
+    "db:users": "cd backend && sqlite3 db.sqlite \"SELECT id, username, email, role FROM users;\"",
+    "db:spots": "cd backend && sqlite3 db.sqlite \"SELECT id, name, type, difficulty FROM skate_spots LIMIT 10;\"",
+    "db:events": "cd backend && sqlite3 db.sqlite \"SELECT id, title, eventType, date, approved FROM events LIMIT 10;\"",
+    "db:stats": "cd backend && sqlite3 db.sqlite \"SELECT 'Users:' as table_name, COUNT(*) as count FROM users UNION SELECT 'Events:', COUNT(*) FROM events UNION SELECT 'Spots:', COUNT(*) FROM skate_spots UNION SELECT 'Photos:', COUNT(*) FROM gallery_photos;\""
   },
   "eslintConfig": {
     "extends": [
@@ -54,6 +66,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.15",
+    "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.6",
     "concurrently": "^8.2.2",
     "jest": "^27.5.1"
